@@ -128,6 +128,27 @@
   .hero-banner-sub { font-size:15px;color:#666;margin-bottom:28px; }
   .hero-banner-btn { display:inline-block;background:#e84393;color:#fff;border:none;border-radius:30px;padding:14px 36px;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .2s,transform .2s; }
   .hero-banner-btn:hover { background:#c0306e;transform:translateY(-2px); }
+  /* Hero Slider */
+  .hero-slider { position:relative; }
+  .hero-track { display:flex; transition:transform .6s cubic-bezier(.6,0,.2,1); }
+  .hero-slide { min-width:100%; }
+  .hero-nav { position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.85);color:#333;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center; }
+  .hero-nav:hover { background:#fff; }
+  .hero-nav.prev { left:52px; }
+  .hero-nav.next { right:52px; }
+  .hero-dots { position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:8px;z-index:5; }
+  .hero-dot { width:9px;height:9px;border-radius:50%;background:rgba(0,0,0,.22);cursor:pointer;transition:all .25s; }
+  .hero-dot.active { background:#e84393;width:26px;border-radius:6px; }
+  .hero-banner.rakhi { background:linear-gradient(135deg,#6e1410 0%,#a8321a 34%,#d9772a 68%,#f3c14a 100%); }
+  .hero-banner.rakhi .hero-banner-eyebrow { color:#ffe6c2; }
+  .hero-banner.rakhi .hero-banner-eyebrow::before,.hero-banner.rakhi .hero-banner-eyebrow::after { background:rgba(255,220,150,.55); }
+  .hero-banner.rakhi .hero-banner-title { color:#fff; }
+  .hero-banner.rakhi .hero-banner-title span { color:#ffd76a;font-style:normal; }
+  .hero-banner.rakhi .hero-banner-sub { color:#ffe9d2; }
+  .hero-banner.rakhi .hero-banner-btn { background:#fff;color:#a8321a; }
+  .hero-banner.rakhi .hero-banner-btn:hover { background:#ffe9c7;color:#8a2413; }
+  .hero-banner.rakhi .petal { opacity:.9;font-size:22px; }
+  @media (max-width:768px){ .hero-nav { display:none; } }
   /* Petals */
   .petal { position:absolute;font-size:18px;opacity:.6;pointer-events:none;z-index:1; }
   .occasion-section { padding: 28px 40px 32px; background: #fff; border-bottom: 1px solid #eee; }
@@ -835,24 +856,65 @@
   </div>
 </div>
 
-<!-- Hero Banner -->
-<section class="hero-banner">
-  <img src="bouquets.png" class="hero-banner-bouquet left" alt="">
-  <img src="bouquets.png" class="hero-banner-bouquet right" alt="">
-  <!-- Scattered petals -->
-  <span class="petal" style="top:18%;left:28%">🌸</span>
-  <span class="petal" style="top:60%;left:22%">🌸</span>
-  <span class="petal" style="top:30%;right:28%">🌸</span>
-  <span class="petal" style="top:65%;right:24%">🌸</span>
-  <span class="petal" style="top:12%;left:42%">🌸</span>
-  <span class="petal" style="top:75%;right:40%">🌸</span>
-  <div class="hero-banner-content">
-    <div class="hero-banner-eyebrow">Celebrate Every Moment with</div>
-    <div class="hero-banner-title">Fresh <span>Flowers</span> &amp; Thoughtful <span>Gifts</span></div>
-    <div class="hero-banner-sub">Beautiful Flowers, Crafted with Love &amp; Delivered with Care.</div>
-    <a class="hero-banner-btn" href="#products-section">Shop Now &rarr;</a>
+<!-- Hero Slider -->
+<section class="hero-slider" id="heroSlider">
+ <div class="hero-track" id="heroTrack">
+  <div class="hero-slide">
+   <section class="hero-banner">
+     <img src="bouquets.png" class="hero-banner-bouquet left" alt="">
+     <img src="bouquets.png" class="hero-banner-bouquet right" alt="">
+     <span class="petal" style="top:18%;left:28%">🌸</span>
+     <span class="petal" style="top:60%;left:22%">🌸</span>
+     <span class="petal" style="top:30%;right:28%">🌸</span>
+     <span class="petal" style="top:65%;right:24%">🌸</span>
+     <span class="petal" style="top:12%;left:42%">🌸</span>
+     <span class="petal" style="top:75%;right:40%">🌸</span>
+     <div class="hero-banner-content">
+       <div class="hero-banner-eyebrow">Celebrate Every Moment with</div>
+       <div class="hero-banner-title">Fresh <span>Flowers</span> &amp; Thoughtful <span>Gifts</span></div>
+       <div class="hero-banner-sub">Beautiful Flowers, Crafted with Love &amp; Delivered with Care.</div>
+       <a class="hero-banner-btn" href="#products-section">Shop Now &rarr;</a>
+     </div>
+   </section>
   </div>
+  <div class="hero-slide">
+   <section class="hero-banner rakhi">
+     <span class="petal" style="top:16%;left:24%">🪢</span>
+     <span class="petal" style="top:62%;left:18%">🎁</span>
+     <span class="petal" style="top:24%;right:22%">🌼</span>
+     <span class="petal" style="top:68%;right:26%">🪢</span>
+     <span class="petal" style="top:12%;left:46%">✨</span>
+     <span class="petal" style="top:78%;right:42%">🎀</span>
+     <div class="hero-banner-content">
+       <div class="hero-banner-eyebrow">🪢 Raksha Bandhan Special</div>
+       <div class="hero-banner-title">Celebrate the Bond of <span>Love</span></div>
+       <div class="hero-banner-sub">Rakhi hampers, sweets &amp; fresh flowers for your bhai–behen — delivered with love. 🌸</div>
+       <a class="hero-banner-btn" href="hamper.html">Shop Rakhi Gifts &rarr;</a>
+     </div>
+   </section>
+  </div>
+ </div>
+ <button class="hero-nav prev" id="heroPrev" aria-label="Previous">&#8249;</button>
+ <button class="hero-nav next" id="heroNext" aria-label="Next">&#8250;</button>
+ <div class="hero-dots" id="heroDots"></div>
 </section>
+<script>
+(function(){
+  var track=document.getElementById('heroTrack'); if(!track) return;
+  var n=track.children.length, i=0, dots=document.getElementById('heroDots');
+  for(var k=0;k<n;k++){ var d=document.createElement('span'); d.className='hero-dot'+(k===0?' active':''); (function(idx){ d.addEventListener('click',function(){ go(idx); reset(); }); })(k); dots.appendChild(d); }
+  function render(){ track.style.transform='translateX(-'+(i*100)+'%)'; var ds=dots.children; for(var k=0;k<ds.length;k++) ds[k].className='hero-dot'+(k===i?' active':''); }
+  function go(x){ i=((x%n)+n)%n; render(); }
+  var timer=setInterval(function(){ go(i+1); },5000);
+  function reset(){ clearInterval(timer); timer=setInterval(function(){ go(i+1); },5000); }
+  var pv=document.getElementById('heroPrev'), nx=document.getElementById('heroNext');
+  if(pv) pv.addEventListener('click',function(){ go(i-1); reset(); });
+  if(nx) nx.addEventListener('click',function(){ go(i+1); reset(); });
+  var sx=0;
+  track.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+  track.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40){ go(dx<0?i+1:i-1); reset(); } },{passive:true});
+})();
+</script>
 
 <section class="occasion-section">
   <div class="occasion-title">Gifts For Every Occasion</div>
