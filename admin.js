@@ -266,7 +266,45 @@
     { id: "P162", title: "I Love You Red Bouquet", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "anniversary-bouquet", image: "products/WhatsApp Image 2026-08-20 at 12.42.41 PM (1).jpeg", custom: false },
     { id: "P163", title: "25th Anniversary Box", category: "Bouquet", price: 1499, discount: 0, stock: 25, tags: "anniversary-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.38 PM.jpeg", custom: false }
   ];
-  function saveProducts() { try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {} }
+  /* ---- Server API (small shared JSON database on the Railway backend) ---- */
+  function apiGet(p) { return fetch(p).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
+  function apiSend(method, p, body) { return fetch(p, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
+  function normalizeOrder(o) {
+    if (o.statusIdx === undefined) o.statusIdx = FLORAL.indexOf(o.status) >= 0 ? FLORAL.indexOf(o.status) : 0;
+    o.status = deriveStatus(o);
+    if (!o.customer) o.customer = o.name || "Guest";
+    if (o.amount === undefined || o.amount === null) o.amount = o.total || 0;
+    if (!o.product && o.items && o.items.length) o.product = o.items.map(function (it) { return it.name || it.title; }).filter(Boolean).join(", ");
+    if (!o.greeting) o.greeting = pick(GREETINGS);
+    if (!o.slot) o.slot = pick(SLOTS);
+    if (!o.placed) o.placed = o.date || fmtDate(daysAgo(rand(0, 10)));
+    if (!o.deliveryDate || typeof o.deliveryDate !== "string") o.deliveryDate = fmtDate(daysAgo(-rand(0, 6)));
+    return o;
+  }
+  function customersFromServer(list) {
+    return list.map(function (c) {
+      var mine = orders.filter(function (o) { return (c.phone && o.phone === c.phone) || (c.name && (o.customer === c.name || o.name === c.name)); });
+      return { id: c.id || "CUS", name: c.name || "Customer", email: c.email || "—", phone: c.phone || "—",
+        orders: mine.length, ltv: mine.reduce(function (s, o) { return s + (+o.amount || 0); }, 0),
+        last: c.createdAt ? new Date(c.createdAt) : new Date(), city: c.city || "Sikar", status: "Active" };
+    });
+  }
+  var _lastOrderN = -1;
+  function syncFromServer(initial) {
+    apiGet("/api/products").then(function (d) { if (Array.isArray(d) && d.length) { products = d; if (current === "products") go("products"); } }).catch(function () {});
+    apiGet("/api/orders").then(function (d) {
+      if (!Array.isArray(d)) return;
+      orders = d.map(normalizeOrder);
+      var grew = orders.length > _lastOrderN && _lastOrderN >= 0;
+      _lastOrderN = orders.length;
+      if ((initial || grew) && /dashboard|orders|analytics|payments|customers/.test(current)) go(current);
+    }).catch(function () {});
+    apiGet("/api/customers").then(function (d) { if (Array.isArray(d)) { customers = customersFromServer(d); if (current === "customers") go("customers"); } }).catch(function () {});
+  }
+  function saveProducts() {
+    try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {}
+    apiSend("PUT", "/api/products", products).catch(function () {});   // persist to the shared database
+  }
   var products = (function () {
     var existing = null; try { existing = JSON.parse(localStorage.getItem("ambika_products")); } catch (e) {}
     if (existing && existing.length) return existing;
@@ -534,7 +572,8 @@
       return '<tr><td>' + thumb + '<b>' + esc(p.title) + '</b>' + (p.custom ? ' <span class="pill pink" style="font-size:9px;">NEW</span>' : '') + '<br><small style="color:var(--ink2);">' + p.id + ' · ' + esc(p.tags) + '</small></td>' +
         '<td><span class="pill blue">' + esc(p.category) + '</span></td><td>' + inr(p.price) + '</td>' +
         '<td>' + (p.discount ? p.discount + "%" : "—") + '</td><td><b>' + p.stock + '</b></td><td>' + statusPill(ss.t) + '</td>' +
-        '<td><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button></td></tr>';
+        '<td style="white-space:nowrap;"><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button> ' +
+          '<button class="mini-btn" title="Delete" style="color:#d33;" onclick="ADMIN.delProduct(\'' + p.id + '\')">🗑 Delete</button></td></tr>';
     }).join("");
   }
 
@@ -791,6 +830,16 @@
     },
     addProduct: function () { productForm(null); },
     editProduct: function (id) { productForm(products.filter(function (p) { return p.id === id; })[0]); },
+    delProduct: function (id) {
+      var p = products.filter(function (x) { return x.id === id; })[0];
+      if (!p) return;
+      if (!confirm('Delete "' + p.title + '"?\nYe product hamesha ke liye hat jayega.')) return;
+      var i = products.map(function (x) { return x.id; }).indexOf(id);
+      if (i > -1) products.splice(i, 1);
+      saveProducts();
+      if (current === "products") go("products");
+      notify("Product deleted ✓");
+    },
     saveProduct: function () {
       var t = $("#pfTitle").value.trim(); if (!t) { notify("Title required"); return; }
       var editing = $("#pfId").value;
@@ -1011,6 +1060,10 @@
     renderNotifs();
     updateLeadBadge();
     go("dashboard");
+
+    // Load live shared data from the server, then keep it fresh (new orders / signups)
+    syncFromServer(true);
+    setInterval(function () { syncFromServer(false); }, 6000);
   }
 
   /* ------------------------------------------------------------------ */
