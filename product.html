@@ -123,7 +123,7 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
     <div class="pd-tag" id="pd-tag">Ambika Flowers</div>
     <h1 class="pd-name" id="pd-name">Product</h1>
     <div class="pd-rating">★★★★★ <span>(Loved by customers)</span></div>
-    <div class="pd-price" id="pd-price">₹0 <small>Free greeting card 🌸</small></div>
+    <div class="pd-price" id="pd-price">Coming Soon <small>Free greeting card 🌸</small></div>
     <p class="pd-desc" id="pd-desc"></p>
 
     <div class="pd-qty">
@@ -169,7 +169,7 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
   document.getElementById("bc-name").textContent = name;
   document.getElementById("bc-cat").textContent = tag || "Products";
   document.getElementById("pd-tag").textContent = tag || "Ambika Flowers";
-  document.getElementById("pd-price").innerHTML = "₹" + price.toLocaleString("en-IN") + ' <small>Free greeting card 🌸</small>';
+  document.getElementById("pd-price").innerHTML = "Coming Soon" + ' <small>Free greeting card 🌸</small>';
   var imgEl = document.getElementById("pd-img");
   imgEl.onerror = function(){ this.style.visibility = "hidden"; };
   imgEl.alt = name;

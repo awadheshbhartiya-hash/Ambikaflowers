@@ -98,7 +98,12 @@
     var priceEl = card.querySelector(".price-current, .product-price, .bs-card-price, .p-price");
     var imgEl = card.querySelector("img");
     var name = nameEl ? nameEl.textContent.trim() : "Product";
-    var price = priceEl ? parseInt(priceEl.textContent.replace(/[^\d]/g, ""), 10) || 0 : 0;
+    /* Prices are shown as "Coming Soon" in the UI, so read the real number from
+       data-price first (set from the live catalogue) and only fall back to the
+       (now non-numeric) card text if that attribute is missing. */
+    var dpAttr = card.getAttribute ? card.getAttribute("data-price") : null;
+    var price = (dpAttr !== null && dpAttr !== "") ? (parseInt(dpAttr, 10) || 0)
+      : (priceEl ? parseInt(priceEl.textContent.replace(/[^\d]/g, ""), 10) || 0 : 0);
     var img = imgEl ? imgEl.getAttribute("src") : "";
     return { id: slug(name), name: name, price: price, img: img };
   }
@@ -295,7 +300,7 @@
       return '<div class="ak-item">' + img +
         '<div class="ak-item-mid">' +
           '<div class="ak-item-name">' + it.name + '</div>' +
-          '<div class="ak-item-price">' + money(it.price) + '</div>' +
+          '<div class="ak-item-price">Coming Soon</div>' +
           '<div class="ak-item-bottom">' +
             '<div class="ak-qty">' +
               '<button data-dec="' + it.id + '">−</button>' +
@@ -312,9 +317,9 @@
     var delivery = sub >= FREE_ABOVE ? 0 : DELIVERY_FEE;
     var deliveryHtml = delivery === 0 ? '<span class="free">FREE</span>' : money(delivery);
     foot.innerHTML =
-      '<div class="ak-row"><span>Subtotal (' + cartCount() + ' items)</span><span>' + money(sub) + '</span></div>' +
+      '<div class="ak-row"><span>Subtotal (' + cartCount() + ' items)</span><span>Coming Soon</span></div>' +
       '<div class="ak-row"><span>Estimated Delivery</span><span>' + deliveryHtml + '</span></div>' +
-      '<div class="ak-row total"><span>Grand Total</span><span>' + money(sub + delivery) + '</span></div>' +
+      '<div class="ak-row total"><span>Grand Total</span><span>Coming Soon</span></div>' +
       '<button class="ak-checkout" id="ak-checkout">Proceed to Checkout →</button>';
 
     body.querySelectorAll("[data-inc]").forEach(function (b) { b.addEventListener("click", function () { var id = b.getAttribute("data-inc"); setQty(id, findQty(id) + 1); }); });
@@ -945,7 +950,7 @@
     }).join("") + '</div>';
   }
   function orderCardHTML(o) {
-    return '<div class="trk-card"><div class="trk-top"><div class="trk-id">' + esc(o.id) + '<small>' + esc(o.product || "") + ' · ' + esc(o.date || "") + '</small></div><div class="trk-amt">₹' + Number(o.amount || 0).toLocaleString("en-IN") + '</div></div>' +
+    return '<div class="trk-card"><div class="trk-top"><div class="trk-id">' + esc(o.id) + '<small>' + esc(o.product || "") + ' · ' + esc(o.date || "") + '</small></div><div class="trk-amt">Coming Soon</div></div>' +
       '<div class="trk-prod">📍 ' + esc(o.address || "") + (o.slot ? ' · 🕒 ' + esc(o.slot) : "") + '</div>' +
       trackerHTML(o) + '</div>';
   }
@@ -1154,7 +1159,7 @@
         '<input placeholder="CVV" inputmode="numeric" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;"></div></div>' +
         '<div class="pay-secure">🔒 Secured by Razorpay (demo). Cards are not actually charged.</div></div>';
     }
-    return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay ₹' + amount + ' in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
+    return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay <b>Coming Soon</b> in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
       '<div class="pay-secure">Your order will be marked <b>Pending COD</b> until delivery.</div></div>';
   }
   /* ---- Distance-based delivery: Sikar ₹100 · outside ₹100 + ₹20/km ---- */
@@ -1204,9 +1209,9 @@
     var loc = load("ambika_location");
     var body =
       '<div class="pay-sum">' +
-        p.items.map(function (it) { return '<div class="pl"><span>' + esc(it.name) + ' × ' + it.qty + '</span><span>₹' + (it.price * it.qty).toLocaleString("en-IN") + '</span></div>'; }).join("") +
+        p.items.map(function (it) { return '<div class="pl"><span>' + esc(it.name) + ' × ' + it.qty + '</span><span>Coming Soon</span></div>'; }).join("") +
         '<div class="pl"><span>Delivery <small style="color:#a1758a;">(' + esc(del.zone) + ')</small></span><span>₹' + delivery.toLocaleString("en-IN") + '</span></div>' +
-        '<div class="pl tot"><span>Total Payable</span><span>₹' + total.toLocaleString("en-IN") + '</span></div>' +
+        '<div class="pl tot"><span>Total Payable</span><span>Coming Soon</span></div>' +
       '</div>' +
       '<div class="pay-deliv"><div class="pay-deliv-txt">🚚 ' + esc(del.detail) + '</div>' +
         '<button type="button" class="pay-detect" id="pay-detect">🎯 Detect my exact location</button></div>' +
@@ -1222,7 +1227,7 @@
         '<div class="pay-m" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
       '</div>' +
       '<div id="pay-panel">' + methodPanel(payState.method, total) + '</div>' +
-      '<button class="pay-confirm" id="pay-confirm">Confirm &amp; Pay ₹' + total.toLocaleString("en-IN") + '</button>' +
+      '<button class="pay-confirm" id="pay-confirm">Confirm &amp; Pay · Coming Soon</button>' +
       '<div class="pay-secure">🔒 100% Secure Payments · Razorpay / UPI</div>';
     el("af-pay-body").innerHTML = body;
 
@@ -1233,7 +1238,7 @@
         m.classList.add("sel"); payState.method = m.getAttribute("data-m");
         el("pay-panel").innerHTML = methodPanel(payState.method, payState.total);
         var cb = el("pay-confirm");
-        if (cb) cb.innerHTML = payState.method === "cod" ? ("Place Order · ₹" + payState.total.toLocaleString("en-IN")) : ("Confirm &amp; Pay ₹" + payState.total.toLocaleString("en-IN"));
+        if (cb) cb.innerHTML = payState.method === "cod" ? "Place Order · Coming Soon" : "Confirm &amp; Pay · Coming Soon";
         wirePanel();
       });
     });
@@ -1301,7 +1306,7 @@
         '</div>' +
         '<h4>' + (isCod ? 'Order Confirmed!' : 'Payment Successful!') + '</h4>' +
         '<div class="oid">Order #' + oid + '</div>' +
-        '<p>Thank you, ' + esc(order.customer) + '! Your order for <b>₹' + payState.total.toLocaleString("en-IN") + '</b> is placed' +
+        '<p>Thank you, ' + esc(order.customer) + '! Your order for <b>Coming Soon</b> is placed' +
         (isCod ? ' with <b>Cash on Delivery</b> — pay when it arrives. 🌸' : ' and <b>paid via ' + methodName + '</b>. 🌸') +
         '<br>Track it live from “Track Order”.</p>' +
         '<div class="pay-brand"><img src="logo.png" alt="Ambika Flowers" onerror="this.style.display=\'none\';this.nextElementSibling.style.marginTop=\'0\';"><div class="pay-brand-name">Ambika Flowers 🌸</div><div class="pay-brand-tag">Fresh Blooms, Delivered with Love ❤️</div></div>' +
@@ -1362,14 +1367,14 @@
     var card = document.createElement("div");
     card.className = "product-card"; card.setAttribute("data-cust", p.id);
     card.setAttribute("data-cat", "custom " + (p.category || "").toLowerCase()); card.style.cursor = "pointer";
+    card.setAttribute("data-price", dp);
     card.innerHTML =
       '<div class="product-img-wrap"><img class="product-img" src="' + esc(img) + '" alt="' + esc(p.title) + '" onerror="this.style.visibility=\'hidden\'"></div>' +
       '<div class="product-info"><span class="product-badge badge-new">New</span>' +
       '<div class="product-name">' + esc(p.title) + '</div>' +
       '<div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">(New)</span></div>' +
-      '<div class="product-price"><span class="price-current">₹' + dp.toLocaleString("en-IN") + '</span>' +
-      (p.discount ? '<span class="price-original">₹' + Number(p.price).toLocaleString("en-IN") + '</span><span class="price-off">' + p.discount + '% OFF</span>' : '') +
-      '</div><button class="add-to-cart">🛒 Add to Cart</button></div>';
+      '<div class="product-price"><span class="price-current">Coming Soon</span></div>' +
+      '<button class="add-to-cart">🛒 Add to Cart</button></div>';
     card.addEventListener("click", function (e) { if (e.target.closest(".add-to-cart")) return; if (window.AmbikaShop && window.AmbikaShop.openProductPage) window.AmbikaShop.openProductPage(card); });
     return card;
   }
@@ -1381,7 +1386,7 @@
       '<div class="product-img-wrap"><img class="product-img" src="' + esc(img) + '" alt="' + esc(p.title) + '" onerror="this.style.visibility=\'hidden\'"></div>' +
       '<div class="product-info"><div class="product-sub-tag">✨ New Arrival</div>' +
       '<div class="product-name">' + esc(p.title) + '</div>' +
-      '<div class="product-price">₹' + dp.toLocaleString("en-IN") + '</div>' +
+      '<div class="product-price">Coming Soon</div>' +
       '<button class="add-to-cart">Add to Cart</button></div>';
     return card;
   }
@@ -1435,9 +1440,10 @@
         var src = (img.getAttribute("src") || "").split("/").pop();
         var p = byImg[src]; if (!p) return;
         var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : p.price;
-        var money = "₹" + Number(dp).toLocaleString("en-IN");
-        var pe = card.querySelector(".product-price"); if (pe) pe.textContent = money;
-        var cur = card.querySelector(".price-current"); if (cur) cur.textContent = money;
+        /* Price text always reads "Coming Soon" — data-price still carries the
+           real number underneath for cart/checkout math and price filtering. */
+        var pe = card.querySelector(".product-price"); if (pe) pe.textContent = "Coming Soon";
+        var cur = card.querySelector(".price-current"); if (cur) cur.textContent = "Coming Soon";
         card.setAttribute("data-price", dp);
         var ne = card.querySelector(".product-name"); if (ne && p.title) ne.textContent = p.title;
       });

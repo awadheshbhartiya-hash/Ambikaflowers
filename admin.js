@@ -570,7 +570,7 @@
       var ss = stockStatus(p.stock);
       var thumb = p.image ? '<img src="' + esc(p.image) + '" alt="" onerror="this.style.display=\'none\'" style="width:38px;height:38px;border-radius:8px;object-fit:cover;margin-right:9px;vertical-align:middle;">' : '<span style="display:inline-block;width:38px;height:38px;border-radius:8px;background:rgba(120,140,170,.15);margin-right:9px;vertical-align:middle;text-align:center;line-height:38px;">🌸</span>';
       return '<tr><td>' + thumb + '<b>' + esc(p.title) + '</b>' + (p.custom ? ' <span class="pill pink" style="font-size:9px;">NEW</span>' : '') + '<br><small style="color:var(--ink2);">' + p.id + ' · ' + esc(p.tags) + '</small></td>' +
-        '<td><span class="pill blue">' + esc(p.category) + '</span></td><td>' + inr(p.price) + '</td>' +
+        '<td><span class="pill blue">' + esc(p.category) + '</span></td><td>Coming Soon</td>' +
         '<td>' + (p.discount ? p.discount + "%" : "—") + '</td><td><b>' + p.stock + '</b></td><td>' + statusPill(ss.t) + '</td>' +
         '<td style="white-space:nowrap;"><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button> ' +
           '<button class="mini-btn" title="Delete" style="color:#d33;" onclick="ADMIN.delProduct(\'' + p.id + '\')">🗑 Delete</button></td></tr>';
