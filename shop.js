@@ -327,7 +327,6 @@
 
   function checkout() {
     if (window.AmbikaTrack) try { window.AmbikaTrack.logActivity("cart", "💳", window.AmbikaTrack.visitorName() + " started checkout (₹" + subtotal() + ")"); } catch (e) {}
-    if (!user) { closeCart(); openAuth("login"); toast("Please login to checkout"); return; }
     if (cart.length === 0) { toast("Your cart is empty"); return; }
     if (window.AmbikaPay && window.AmbikaPay.openCheckout) {
       var payload = {
