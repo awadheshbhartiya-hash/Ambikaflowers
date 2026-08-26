@@ -157,31 +157,6 @@
   .bs-arrow-right { right: -12px; }
   .bs-view-all { background: #fff; border: 2px solid #1a3a5c; color: #1a3a5c; padding: 13px 48px; border-radius: 50px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s, color .2s; letter-spacing: .3px; }
   .bs-view-all:hover { background: #1a3a5c; color: #fff; }
-<<<<<<< HEAD
-=======
-  .gfe-section { background: #fff; padding: 36px 48px 40px; }
-  .gfe-title { font-size: 26px; font-weight: 800; color: #111; margin-bottom: 24px; }
-  .gfe-slider-wrap { position: relative; }
-  .gfe-slider { display: flex; gap: 28px; overflow-x: auto; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: #1a3a5c #eee; padding: 6px 4px 20px; }
-  .gfe-slider::-webkit-scrollbar { height: 4px; }
-  .gfe-slider::-webkit-scrollbar-track { background: #eee; border-radius: 2px; }
-  .gfe-slider::-webkit-scrollbar-thumb { background: #1a3a5c; border-radius: 2px; }
-  .gfe-card { display: flex; flex-direction: column; align-items: center; gap: 14px; cursor: pointer; flex-shrink: 0; transition: transform .2s; }
-  .gfe-card:hover { transform: translateY(-5px); }
-  .gfe-img-wrap { width: 250px; height: 172px; border-radius: 22px; overflow: hidden; position: relative; box-shadow: 0 6px 18px rgba(180,80,120,.10); transition: transform .25s, box-shadow .25s; }
-  .gfe-card:hover .gfe-img-wrap { box-shadow: 0 16px 40px rgba(180,80,120,.22); }
-  .gfe-photo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; font-size:0; color:transparent; overflow:hidden; transition:transform .45s cubic-bezier(.2,.9,.25,1.3); will-change:transform; }
-  .gfe-card:hover .gfe-photo { transform:scale(1.07); }
-  .gfe-shine { position:absolute; inset:0; background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.45) 50%,transparent 60%); transform:translateX(-120%); pointer-events:none; }
-  .gfe-card:hover .gfe-shine { animation:gfeShine .9s ease forwards; }
-  @keyframes gfeShine { to { transform:translateX(120%); } }
-  .gfe-card { opacity:0; transform:translateY(24px); }
-  .gfe-card.gfe-in { opacity:1; transform:translateY(0); transition:opacity .55s ease, transform .55s cubic-bezier(.2,.9,.25,1.2); }
-  .gfe-label { font-size: 15px; font-weight: 700; color: #3a2540; text-align: center; }
-  .gfe-arrow { position: absolute; top: 42%; transform: translateY(-50%); width: 40px; height: 40px; background: #fff; border: 1px solid #ccc; border-radius: 50%; cursor: pointer; font-size: 24px; line-height: 38px; text-align: center; z-index: 10; box-shadow: 0 3px 10px rgba(0,0,0,.12); color: #333; }
-  .gfe-arrow-left { left: -12px; }
-  .gfe-arrow-right { right: -12px; }
->>>>>>> df02cf7550c2be595d71b83dbe38da2d9344a763
   .verm-section { background: #fff; padding: 36px 48px 44px; }
   .verm-title { font-size: 26px; font-weight: 800; color: #111; margin-bottom: 6px; }
   .verm-subtitle { font-size: 14px; color: #666; margin-bottom: 24px; }
@@ -258,6 +233,9 @@
   .product-img-wrap { width:100%;height:280px;overflow:hidden;background:#f8f5f5; }
   .product-img { width:100%;height:100%;object-fit:cover;object-position:center top;transition:transform .35s; }
   .product-card:hover .product-img { transform:scale(1.06); }
+  /* Signature Collection: keep the whole frame in view (video still on the first card was getting cropped) */
+  .sig-slider .product-img { object-position:center center; }
+  .sig-slider .product-card:first-child .product-img { object-fit:contain;background:#f4f1f1; }
   .product-info { padding:14px 16px 16px; }
   .product-badge { display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:5px; }
   .badge-sale { background:#e84393;color:#fff; }
@@ -1281,31 +1259,6 @@ buildBsSlider('all');
     }
   });
 })();
-<<<<<<< HEAD
-=======
-/* Gifts for Everyone — apply character sprite + staggered scroll reveal */
-(function(){
-  var spr = window.AMBIKA_SPRITE;
-  var pos = ['0% 0%','50% 0%','100% 0%','0% 100%','50% 100%','100% 100%'];
-  document.querySelectorAll('#gfe-slider .gfe-photo').forEach(function(el,i){
-    el.removeAttribute('src');   /* always kill the broken-image icon */
-    if(spr){ el.style.background = 'url("'+spr+'") '+(pos[i]||'0% 0%')+' / 300% 200% no-repeat'; }
-  });
-  var cards = document.querySelectorAll('#gfe-slider .gfe-card');
-  if(!cards.length) return;
-  if(!('IntersectionObserver' in window)){ cards.forEach(function(c){c.classList.add('gfe-in');}); return; }
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(en){
-      if(en.isIntersecting){
-        var el = en.target, idx = +el.dataset.gi || 0;
-        setTimeout(function(){ el.classList.add('gfe-in'); }, idx*90);
-        io.unobserve(el);
-      }
-    });
-  }, { threshold:.18 });
-  cards.forEach(function(c,i){ c.dataset.gi = i; io.observe(c); });
-})();
->>>>>>> df02cf7550c2be595d71b83dbe38da2d9344a763
 </script>
 <script src="shop.js"></script>
 </body>

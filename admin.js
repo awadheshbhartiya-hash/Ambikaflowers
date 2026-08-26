@@ -96,12 +96,24 @@
     return []; // start empty — real orders arrive from the storefront checkout
   })();
 
-  // Products — shared with the storefront via localStorage("ambika_products"); starts empty
+  // Products — shared with the storefront via localStorage("ambika_products").
+  // The storefront homepage already shows these 6 as hardcoded cards; we mirror them
+  // here so the admin catalogue is never empty. They are display defaults only — not
+  // written to localStorage and not marked custom, so the storefront never duplicates
+  // them. Once the shopkeeper edits/adds a product, the whole list is saved.
+  var DEFAULT_CATALOG = [
+    { id: "1", title: "Happy Birthday Grand Standing Bouquet", category: "Bouquet", price: 2499, discount: 17, stock: 25, tags: "bestseller", image: "products/WhatsApp Image 2026-08-20 at 12.36.15 PM.jpeg", custom: false },
+    { id: "2", title: "Teddy Bear Giant Bouquet (3 Feet)", category: "Bouquet", price: 2999, discount: 14, stock: 18, tags: "premium", image: "products/WhatsApp Image 2026-08-20 at 12.41.44 PM (1).jpeg", custom: false },
+    { id: "3", title: "Royal Balloon Basket — Purple & Gold", category: "Balloon", price: 1899, discount: 17, stock: 12, tags: "new", image: "products/WhatsApp Image 2026-08-21 at 9.16.09 PM.jpeg", custom: false },
+    { id: "4", title: "Premium Mixed Floral Bouquet", category: "Bouquet", price: 1499, discount: 17, stock: 30, tags: "bestseller", image: "products/WhatsApp Image 2026-08-20 at 12.36.16 PM.jpeg", custom: false },
+    { id: "5", title: "Everyday Sunflower Bouquet", category: "Bouquet", price: 899, discount: 18, stock: 20, tags: "sale", image: "products/WhatsApp Image 2026-08-21 at 9.19.12 PM.jpeg", custom: false },
+    { id: "6", title: "Pink Balloon Bunny Basket", category: "Balloon", price: 1999, discount: 17, stock: 15, tags: "new", image: "products/WhatsApp Image 2026-08-21 at 9.16.14 PM (2).jpeg", custom: false }
+  ];
   function saveProducts() { try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {} }
   var products = (function () {
     var existing = null; try { existing = JSON.parse(localStorage.getItem("ambika_products")); } catch (e) {}
     if (existing && existing.length) return existing;
-    return []; // add your real products from the "+ Add Product" screen
+    return DEFAULT_CATALOG.slice(); // show the storefront catalogue by default
   })();
   function stockStatus(s) { return s === 0 ? { t: "Out of Stock", c: "red" } : s <= 10 ? { t: "Low Stock", c: "amber" } : { t: "In Stock", c: "green" }; }
 
