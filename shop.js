@@ -659,7 +659,50 @@
   /* ==========================================================================
      ADD-TO-CART DELEGATION + global overrides
      ========================================================================== */
+  function flyFlower(fromEl) {
+    try {
+      if (!fromEl) return;
+      var cartEl = document.querySelector(".cart-count") || document.querySelector(".icon-btn");
+      var s = fromEl.getBoundingClientRect();
+      var t = cartEl ? cartEl.getBoundingClientRect() : { left: window.innerWidth - 40, top: 16, width: 16, height: 16 };
+      var flowers = ["🌸", "🌷", "💐", "🌺"];
+      for (var i = 0; i < 4; i++) {
+        (function (i) {
+          var f = document.createElement("div");
+          f.className = "af-fly-flower";
+          f.textContent = flowers[i % flowers.length];
+          f.style.left = (s.left + s.width / 2 - 11) + "px";
+          f.style.top = (s.top + s.height / 2 - 11) + "px";
+          document.body.appendChild(f);
+          var dx = (t.left + t.width / 2) - (s.left + s.width / 2) + (i * 10 - 15);
+          var dy = (t.top + t.height / 2) - (s.top + s.height / 2);
+          setTimeout(function () {
+            f.style.transform = "translate(" + dx + "px," + dy + "px) scale(.3) rotate(420deg)";
+            f.style.opacity = "0";
+          }, 20 + i * 70);
+          setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 1200 + i * 70);
+        })(i);
+      }
+    } catch (e) {}
+  }
+
+  function productFromCard(card) {
+    if (!card) return null;
+    var d = cardData(card);
+    if (!d || !d.name) return null;
+    var tagEl = card.querySelector(".product-sub-tag, .bs-card-tag");
+    d.tag = tagEl ? tagEl.textContent.trim() : "";
+    return d;
+  }
+  function openProductPage(card) {
+    var d = productFromCard(card);
+    if (!d) return;
+    try { localStorage.setItem("ambika_pdp", JSON.stringify(d)); } catch (e) {}
+    window.location.href = "product.html";
+  }
+
   function wireAddButtons() {
+    // Add to cart (+ flying-flower animation)
     document.addEventListener("click", function (e) {
       var btn = e.target.closest(".add-to-cart");
       if (!btn) return;
@@ -668,8 +711,16 @@
       e.stopPropagation();
       var card = btn.closest(".product-card, .bs-card");
       var data = cardData(card);
-      if (data) addItem(data, 1);
+      if (data) { addItem(data, 1); flyFlower(btn); }
     }, true);
+    // Click anywhere on a product card (except the add button / links) -> product detail page
+    document.addEventListener("click", function (e) {
+      if (e.target.closest(".add-to-cart")) return;
+      if (e.target.closest("a")) return;
+      var card = e.target.closest(".product-card, .bs-card");
+      if (!card) return;
+      openProductPage(card);
+    });
   }
 
   /* Override the old/broken inline handlers used by index2.html & product2.html */
@@ -702,6 +753,7 @@
   window.AmbikaShop = {
     openCart: openCart, closeCart: closeCart,
     openAuth: openAuth, add: addItem,
+    flyFlower: flyFlower, openProductPage: openProductPage,
     getCart: function () { return cart.slice(); },
     getUser: function () { return user; }
   };
@@ -1298,7 +1350,7 @@
       '<div class="product-price"><span class="price-current">₹' + dp.toLocaleString("en-IN") + '</span>' +
       (p.discount ? '<span class="price-original">₹' + Number(p.price).toLocaleString("en-IN") + '</span><span class="price-off">' + p.discount + '% OFF</span>' : '') +
       '</div><button class="add-to-cart">🛒 Add to Cart</button></div>';
-    card.addEventListener("click", function (e) { if (e.target.closest(".add-to-cart")) return; if (window.AmbikaShop) window.AmbikaShop.add({ id: p.id, name: p.title, price: dp, img: img }); });
+    card.addEventListener("click", function (e) { if (e.target.closest(".add-to-cart")) return; if (window.AmbikaShop && window.AmbikaShop.openProductPage) window.AmbikaShop.openProductPage(card); });
     return card;
   }
   function catCard(p, dp, img) {
