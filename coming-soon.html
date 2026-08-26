@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coming Soon — Ambika Flowers</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{ --pink:#e84393; --pink2:#f47ba9; --violet:#7c3aed; --ink:#3a2540; }
+html,body{height:100%;}
+body{
+  font-family:"Segoe UI",system-ui,Arial,sans-serif;
+  min-height:100vh; display:flex; flex-direction:column; color:#fff; overflow-x:hidden;
+  background:linear-gradient(135deg,#ffd9ec 0%,#f6a5c0 30%,#e84393 60%,#a83b8f 100%);
+  background-size:200% 200%; animation:bgShift 18s ease-in-out infinite;
+}
+@keyframes bgShift{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+
+/* floating petals */
+.petals{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+.petal{position:absolute;top:-40px;font-size:26px;opacity:.75;animation:fall linear infinite;}
+@keyframes fall{
+  0%{transform:translateY(-40px) rotate(0deg);opacity:0;}
+  10%{opacity:.8;}
+  100%{transform:translateY(105vh) rotate(540deg);opacity:.2;}
+}
+/* soft glow blobs */
+.blob{position:fixed;border-radius:50%;filter:blur(60px);opacity:.5;z-index:0;pointer-events:none;animation:floatBlob 12s ease-in-out infinite;}
+.blob.b1{width:340px;height:340px;background:#ffd1e8;top:-80px;left:-80px;}
+.blob.b2{width:300px;height:300px;background:#c77dff;bottom:-60px;right:-60px;animation-delay:3s;}
+.blob.b3{width:220px;height:220px;background:#ff8fb7;top:40%;right:10%;animation-delay:6s;}
+@keyframes floatBlob{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-26px) scale(1.08);}}
+
+/* main */
+.wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 22px;position:relative;z-index:2;}
+.logo-ring{
+  position:relative;width:190px;height:190px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:30px;
+  background:rgba(255,255,255,.95);
+  box-shadow:0 0 0 10px rgba(255,255,255,.25), 0 0 60px 12px rgba(255,255,255,.6), 0 0 120px 30px rgba(232,67,147,.55);
+  animation:glow 2.6s ease-in-out infinite;
+}
+@keyframes glow{
+  0%,100%{box-shadow:0 0 0 10px rgba(255,255,255,.22),0 0 55px 10px rgba(255,255,255,.55),0 0 110px 26px rgba(232,67,147,.5);}
+  50%{box-shadow:0 0 0 14px rgba(255,255,255,.30),0 0 80px 18px rgba(255,255,255,.85),0 0 150px 40px rgba(232,67,147,.7);}
+}
+.logo-ring::before{
+  content:"";position:absolute;inset:-18px;border-radius:50%;
+  background:conic-gradient(from 0deg,#fff,#ffd1e8,#e84393,#c77dff,#fff);
+  filter:blur(6px);opacity:.85;z-index:-1;animation:spin 6s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.logo-ring img{width:158px;height:158px;border-radius:50%;object-fit:cover;}
+.logo-fallback{font-size:70px;}
+
+.brand{font-size:44px;font-weight:800;letter-spacing:.5px;text-shadow:0 4px 18px rgba(120,20,80,.45);line-height:1.1;}
+.brand span{font-style:italic;}
+.tag{font-size:15px;font-weight:600;margin-top:8px;opacity:.95;letter-spacing:.4px;text-shadow:0 2px 10px rgba(120,20,80,.35);}
+
+.soon{
+  margin-top:26px;font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:6px;
+  background:linear-gradient(90deg,#fff,#ffe3f1,#fff,#ffd1e8,#fff);
+  background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimmer 3s linear infinite;
+}
+@keyframes shimmer{to{background-position:200% center;}}
+.soon-sub{font-size:13.5px;margin-top:10px;opacity:.9;max-width:440px;line-height:1.6;}
+
+/* countdown */
+.count{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap;justify-content:center;}
+.count .box{background:rgba(255,255,255,.18);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.35);border-radius:16px;padding:14px 16px;min-width:74px;}
+.count .n{font-size:28px;font-weight:800;line-height:1;}
+.count .l{font-size:10.5px;text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;opacity:.9;}
+
+/* notify */
+.notify{margin-top:30px;display:flex;gap:8px;background:rgba(255,255,255,.95);border-radius:32px;padding:6px 6px 6px 18px;box-shadow:0 12px 34px rgba(120,20,80,.3);max-width:92vw;}
+.notify input{border:none;outline:none;background:transparent;font-size:14px;color:#3a2540;width:230px;max-width:52vw;}
+.notify input::placeholder{color:#b58aa0;}
+.notify button{border:none;border-radius:26px;padding:11px 22px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(135deg,#f47ba9,#e84393);transition:filter .2s,transform .1s;}
+.notify button:hover{filter:brightness(1.06);}
+.notify button:active{transform:scale(.96);}
+.socials{margin-top:22px;display:flex;gap:14px;font-size:20px;}
+.socials a{color:#fff;opacity:.9;transition:transform .2s,opacity .2s;text-decoration:none;}
+.socials a:hover{transform:translateY(-3px);opacity:1;}
+
+/* footer */
+footer{position:relative;z-index:2;padding:18px 16px 26px;text-align:center;}
+.pol-links{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-bottom:12px;}
+.pol-links a{color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;opacity:.92;position:relative;}
+.pol-links a::after{content:"";position:absolute;left:0;bottom:-3px;width:0;height:1.5px;background:#fff;transition:width .25s;}
+.pol-links a:hover::after{width:100%;}
+.copy{font-size:12px;opacity:.85;}
+
+/* modal */
+.pol-ov{position:fixed;inset:0;background:rgba(40,15,35,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s;z-index:100;}
+.pol-ov.open{opacity:1;pointer-events:auto;}
+.pol-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-46%) scale(.96);width:640px;max-width:94vw;max-height:88vh;background:#fff;color:#3a2540;border-radius:20px;z-index:101;opacity:0;pointer-events:none;transition:opacity .3s,transform .35s cubic-bezier(.2,.9,.25,1.3);display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(120,20,80,.4);}
+.pol-modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1);}
+.pol-head{background:linear-gradient(135deg,#f6a5c0,#e84393);color:#fff;padding:20px 24px;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.pol-head h2{font-size:19px;font-weight:800;}
+.pol-x{width:32px;height:32px;border:none;border-radius:50%;background:rgba(255,255,255,.25);color:#fff;font-size:19px;cursor:pointer;transition:background .2s,transform .3s;}
+.pol-x:hover{background:rgba(255,255,255,.45);transform:rotate(90deg);}
+.pol-body{padding:22px 26px 28px;overflow-y:auto;line-height:1.65;font-size:14px;color:#4a3a4f;}
+.pol-body h3{font-size:15px;color:#e84393;margin:18px 0 6px;font-weight:800;}
+.pol-body h3:first-child{margin-top:0;}
+.pol-body p{margin-bottom:10px;}
+.pol-body ul{margin:0 0 12px 20px;}
+.pol-body li{margin-bottom:6px;}
+.pol-body .meta{background:#fdf2f8;border:1px solid #f4dcea;border-radius:12px;padding:14px 16px;font-size:13px;margin-bottom:16px;}
+.pol-body .meta b{color:#3a2540;}
+.pol-updated{font-size:12px;color:#a1758a;font-style:italic;margin-bottom:16px;}
+
+#cs-toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:#fff;color:#e84393;padding:13px 22px;border-radius:12px;font-size:14px;font-weight:700;z-index:200;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transition:all .35s;pointer-events:none;}
+#cs-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media(max-width:520px){
+  .brand{font-size:34px;}
+  .logo-ring{width:158px;height:158px;}
+  .logo-ring img{width:130px;height:130px;}
+  .soon{font-size:16px;letter-spacing:4px;}
+  .notify input{width:150px;}
+}
+</style>
+</head>
+<body>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div class="petals" id="petals"></div>
+
+<div class="wrap">
+  <div class="logo-ring">
+    <img src="logo.png" alt="Ambika Flowers" onerror="this.style.display='none';this.parentNode.insertAdjacentHTML('beforeend','<span class=\'logo-fallback\'>🌸</span>');">
+  </div>
+  <div class="brand">Ambika <span>Flowers</span></div>
+  <div class="tag">🌸 Fresh Blooms, Delivered with Love · Sikar, Rajasthan</div>
+
+  <div class="soon">Coming Soon</div>
+  <div class="soon-sub">We’re planting something beautiful. Our online flower boutique is blossoming and will be ready to brighten your special moments very soon.</div>
+
+  <div class="count" id="count">
+    <div class="box"><div class="n" id="cd-d">00</div><div class="l">Days</div></div>
+    <div class="box"><div class="n" id="cd-h">00</div><div class="l">Hours</div></div>
+    <div class="box"><div class="n" id="cd-m">00</div><div class="l">Minutes</div></div>
+    <div class="box"><div class="n" id="cd-s">00</div><div class="l">Seconds</div></div>
+  </div>
+
+  <form class="notify" id="notifyForm" autocomplete="off">
+    <input type="email" id="notifyEmail" placeholder="Enter your email to get notified">
+    <button type="submit">Notify Me 🌷</button>
+  </form>
+
+  <div class="socials">
+    <a href="#" title="Instagram" onclick="return false">📸</a>
+    <a href="#" title="WhatsApp" onclick="return false">💬</a>
+    <a href="#" title="Facebook" onclick="return false">📘</a>
+    <a href="#" title="Call" onclick="return false">📞</a>
+  </div>
+</div>
+
+<footer>
+  <div class="pol-links" id="polLinks">
+    <a data-pol="privacy">Privacy Policy</a>
+    <a data-pol="terms">Terms &amp; Conditions</a>
+    <a data-pol="refund">Refund &amp; Cancellation</a>
+    <a data-pol="shipping">Shipping &amp; Delivery</a>
+    <a data-pol="contact">Contact Us</a>
+  </div>
+  <div class="copy">© <span id="yr"></span> Ambika Flowers, Sikar (Rajasthan). All rights reserved.</div>
+</footer>
+
+<div class="pol-ov" id="polOv"></div>
+<div class="pol-modal" id="polModal" role="dialog" aria-modal="true">
+  <div class="pol-head"><h2 id="polTitle">Policy</h2><button class="pol-x" id="polClose">&times;</button></div>
+  <div class="pol-body" id="polBody"></div>
+</div>
+
+<div id="cs-toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  document.getElementById("yr").textContent = new Date().getFullYear();
+
+  /* ---- floating petals ---- */
+  var glyphs = ["🌸","🌷","🌹","💐","🌺","✿","❀"];
+  var petals = document.getElementById("petals");
+  for (var i=0;i<18;i++){
+    var p = document.createElement("span");
+    p.className = "petal";
+    p.textContent = glyphs[i % glyphs.length];
+    p.style.left = Math.random()*100 + "vw";
+    p.style.fontSize = (16 + Math.random()*22) + "px";
+    p.style.animationDuration = (7 + Math.random()*9) + "s";
+    p.style.animationDelay = (-Math.random()*12) + "s";
+    p.style.opacity = (0.5 + Math.random()*0.4).toFixed(2);
+    petals.appendChild(p);
+  }
+
+  /* ---- countdown (30 days from first visit, persisted) ---- */
+  var KEY = "ambika_launch_target";
+  var target = parseInt(localStorage.getItem(KEY)||"0",10);
+  if (!target || isNaN(target) || target < Date.now()) {
+    target = Date.now() + 30*24*60*60*1000;
+    try { localStorage.setItem(KEY, String(target)); } catch(e){}
+  }
+  function pad(n){ return (n<10?"0":"")+n; }
+  function tick(){
+    var diff = Math.max(0, target - Date.now());
+    var d = Math.floor(diff/86400000);
+    var h = Math.floor(diff%86400000/3600000);
+    var m = Math.floor(diff%3600000/60000);
+    var s = Math.floor(diff%60000/1000);
+    document.getElementById("cd-d").textContent = pad(d);
+    document.getElementById("cd-h").textContent = pad(h);
+    document.getElementById("cd-m").textContent = pad(m);
+    document.getElementById("cd-s").textContent = pad(s);
+  }
+  tick(); setInterval(tick, 1000);
+
+  /* ---- toast ---- */
+  var toastT;
+  function toast(msg){
+    var t = document.getElementById("cs-toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(function(){ t.classList.remove("show"); }, 2600);
+  }
+
+  /* ---- notify (mock) ---- */
+  document.getElementById("notifyForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var v = document.getElementById("notifyEmail").value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { toast("Please enter a valid email"); return; }
+    try {
+      var list = JSON.parse(localStorage.getItem("ambika_notify")||"[]");
+      if (list.indexOf(v)===-1) list.push(v);
+      localStorage.setItem("ambika_notify", JSON.stringify(list));
+    } catch(err){}
+    document.getElementById("notifyEmail").value = "";
+    toast("Thank you! We’ll notify you at launch 🌸");
+  });
+
+  /* ---- policy content ---- */
+  var CONTACT = {
+    brand: "Ambika Flowers",
+    addr: "Ambika Flowers, Gantagar, Near Gantagar, Sikar, Rajasthan – 332001, India",
+    email: "hello@ambikaflowers.in",
+    phone: "+91 98873 38459",
+    hours: "Monday – Sunday, 8:00 AM – 9:00 PM IST"
+  };
+  var updated = '<div class="pol-updated">Last updated: ' + new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}) + '</div>';
+  var metaBlock = '<div class="meta"><b>' + CONTACT.brand + '</b><br>' + CONTACT.addr +
+    '<br>Email: ' + CONTACT.email + ' · Phone: ' + CONTACT.phone + '</div>';
+
+  var POLICIES = {
+    privacy: { title: "Privacy Policy", html:
+      updated + metaBlock +
+      '<p>At Ambika Flowers ("we", "us", "our"), we respect your privacy and are committed to protecting the personal information you share with us. This Privacy Policy explains what we collect, how we use it, and the choices you have.</p>' +
+      '<h3>Information We Collect</h3>' +
+      '<ul><li><b>Contact details</b> — name, email address, phone number and delivery address you provide when placing an order or creating an account.</li>' +
+      '<li><b>Order details</b> — products purchased, recipient details, gift messages and preferred delivery slots.</li>' +
+      '<li><b>Payment information</b> — payments are processed securely by our payment partner <b>Razorpay</b>. We do not store your card, UPI or bank details on our servers.</li>' +
+      '<li><b>Usage data</b> — basic analytics such as pages viewed, to improve our service.</li></ul>' +
+      '<h3>How We Use Your Information</h3>' +
+      '<p>We use your information to process and deliver your orders, communicate order updates, provide customer support, send occasion reminders (if opted in), and improve our products and website. We never sell your personal data.</p>' +
+      '<h3>Payment Security</h3>' +
+      '<p>All online payments are handled by Razorpay Software Pvt. Ltd. through a secure, PCI-DSS compliant gateway. Your sensitive payment credentials are transmitted directly to Razorpay over an encrypted (SSL/TLS) connection and are never accessible to us.</p>' +
+      '<h3>Sharing of Information</h3>' +
+      '<p>We share data only with trusted service providers required to fulfil your order — such as our payment gateway (Razorpay) and delivery partners — and only to the extent necessary. We may disclose information where required by law.</p>' +
+      '<h3>Cookies</h3>' +
+      '<p>We use minimal cookies and local storage to remember your cart, location preference and login session. You can clear these anytime from your browser settings.</p>' +
+      '<h3>Your Rights</h3>' +
+      '<p>You may request access to, correction of, or deletion of your personal data by writing to us at ' + CONTACT.email + '. We will respond within a reasonable time.</p>' +
+      '<h3>Contact</h3>' +
+      '<p>For any privacy questions, contact us at ' + CONTACT.email + ' or ' + CONTACT.phone + '.</p>'
+    },
+    terms: { title: "Terms & Conditions", html:
+      updated + metaBlock +
+      '<p>These Terms &amp; Conditions govern your use of the Ambika Flowers website and the purchase of products from us. By accessing our site or placing an order, you agree to these terms.</p>' +
+      '<h3>Products &amp; Availability</h3>' +
+      '<p>We sell fresh flower bouquets, hampers, garlands (vermala), balloon and event decor, and related gifting products. As flowers are natural products, exact shades, sizes and specific blooms may vary slightly from the images shown; we always substitute with items of equal or greater value while maintaining the overall look and theme.</p>' +
+      '<h3>Pricing &amp; Payment</h3>' +
+      '<p>All prices are listed in Indian Rupees (₹) and are inclusive of applicable taxes unless stated otherwise. Payments are accepted online through <b>Razorpay</b> (UPI, Credit/Debit Cards, Net Banking and Wallets) and, where available, Cash on Delivery. Your order is confirmed only after successful payment authorisation.</p>' +
+      '<h3>Orders</h3>' +
+      '<p>Once an order is placed you will receive a confirmation. We reserve the right to refuse or cancel any order due to product unavailability, errors in pricing, or suspected fraudulent activity; in such cases any amount paid will be refunded in full.</p>' +
+      '<h3>Delivery</h3>' +
+      '<p>Delivery timelines and areas are described in our Shipping &amp; Delivery Policy. Correct recipient address and contact number are the customer’s responsibility.</p>' +
+      '<h3>User Conduct</h3>' +
+      '<p>You agree not to misuse the website, attempt unauthorised access, or use it for any unlawful purpose.</p>' +
+      '<h3>Intellectual Property</h3>' +
+      '<p>All content, logos and images on this site are the property of Ambika Flowers and may not be reproduced without permission.</p>' +
+      '<h3>Limitation of Liability</h3>' +
+      '<p>Our liability for any order is limited to the value of that order. We are not liable for delays caused by incorrect addresses, recipient unavailability, or events beyond our reasonable control.</p>' +
+      '<h3>Governing Law</h3>' +
+      '<p>These terms are governed by the laws of India and subject to the exclusive jurisdiction of the courts at Sikar, Rajasthan.</p>'
+    },
+    refund: { title: "Refund & Cancellation Policy", html:
+      updated + metaBlock +
+      '<p>We want you to be delighted with every order. This policy explains cancellations, refunds and replacements.</p>' +
+      '<h3>Cancellations</h3>' +
+      '<ul><li>Orders can be cancelled free of charge up to <b>12 hours before</b> the scheduled delivery slot.</li>' +
+      '<li>Cancellations for same-day or urgent orders already being prepared may not be possible, as flowers are perishable and arranged fresh.</li>' +
+      '<li>Custom/personalised arrangements and bulk corporate orders are non-cancellable once production has begun.</li></ul>' +
+      '<h3>Refunds</h3>' +
+      '<ul><li>Eligible refunds are processed to your <b>original payment method via Razorpay</b> within <b>5–7 business days</b>.</li>' +
+      '<li>If a delivery could not be completed due to our error, or the product was damaged/incorrect, we offer a free replacement or a full refund.</li>' +
+      '<li>For quality concerns, please share a photo within <b>4 hours of delivery</b> at ' + CONTACT.email + ' so we can resolve it quickly.</li></ul>' +
+      '<h3>Non-Refundable Cases</h3>' +
+      '<p>Refunds are not applicable where an incorrect address/contact was provided, the recipient was unavailable, or delivery was refused. Minor natural variations in flowers do not qualify for a refund.</p>' +
+      '<h3>How to Request</h3>' +
+      '<p>Email ' + CONTACT.email + ' or call ' + CONTACT.phone + ' with your Order ID. Our team will confirm eligibility and initiate the refund promptly.</p>'
+    },
+    shipping: { title: "Shipping & Delivery Policy", html:
+      updated + metaBlock +
+      '<h3>Delivery Areas</h3>' +
+      '<p>We currently deliver across <b>Sikar city</b> and nearby serviceable areas in Rajasthan. Available delivery zones are shown at checkout based on your pincode.</p>' +
+      '<h3>Delivery Timelines</h3>' +
+      '<ul><li><b>Standard delivery:</b> same-day delivery for orders placed before 4:00 PM (subject to availability).</li>' +
+      '<li><b>Scheduled delivery:</b> choose a preferred date and time slot at checkout (9 AM–12 PM, 12–3 PM, 3–6 PM, 6–9 PM).</li>' +
+      '<li><b>Midnight/fixed-time delivery:</b> may be available in select areas for a small additional charge.</li></ul>' +
+      '<h3>Delivery Charges</h3>' +
+      '<p>Delivery is <b>free on orders above ₹999</b>. A nominal delivery fee applies to smaller orders and is shown transparently at checkout before payment.</p>' +
+      '<h3>Order Tracking</h3>' +
+      '<p>You will receive updates as your order moves through <i>Order Received → Arranging Flowers → Out for Delivery → Delivered</i>, and can track it live from your account.</p>' +
+      '<h3>Delays</h3>' +
+      '<p>Occasionally, deliveries may be delayed due to weather, traffic, festivals or incorrect address details. We will keep you informed and do our best to deliver at the earliest.</p>'
+    },
+    contact: { title: "Contact Us", html:
+      metaBlock +
+      '<h3>Reach Us</h3>' +
+      '<p>We’d love to hear from you — for orders, custom requirements or corporate gifting.</p>' +
+      '<ul><li><b>Email:</b> ' + CONTACT.email + '</li>' +
+      '<li><b>Phone / WhatsApp:</b> ' + CONTACT.phone + '</li>' +
+      '<li><b>Address:</b> ' + CONTACT.addr + '</li>' +
+      '<li><b>Business Hours:</b> ' + CONTACT.hours + '</li></ul>' +
+      '<h3>Corporate & Bulk Orders</h3>' +
+      '<p>For weddings, events and corporate gifting, email us with your requirement and our team will respond within 2 hours during business hours.</p>'
+    }
+  };
+
+  var ov = document.getElementById("polOv"), modal = document.getElementById("polModal");
+  function openPolicy(key){
+    var p = POLICIES[key]; if(!p) return;
+    document.getElementById("polTitle").textContent = p.title;
+    document.getElementById("polBody").innerHTML = p.html;
+    document.getElementById("polBody").scrollTop = 0;
+    ov.classList.add("open"); modal.classList.add("open");
+  }
+  function closePolicy(){ ov.classList.remove("open"); modal.classList.remove("open"); }
+
+  document.getElementById("polLinks").addEventListener("click", function(e){
+    var a = e.target.closest("[data-pol]"); if(!a) return;
+    e.preventDefault(); openPolicy(a.getAttribute("data-pol"));
+  });
+  document.getElementById("polClose").addEventListener("click", closePolicy);
+  ov.addEventListener("click", closePolicy);
+  document.addEventListener("keydown", function(e){ if(e.key==="Escape") closePolicy(); });
+})();
+</script>
+</body>
+</html>

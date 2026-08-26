@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gifts — Ambika Flowers</title>
+<script src="characters.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; }
+
+.sticky-header { position:sticky; top:0; z-index:500; }
+.header { background:#fff; border-bottom:1px solid #e0e0e0; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.header-top { display:flex; align-items:center; padding:10px 40px; gap:16px; max-width:1600px; margin:0 auto; }
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; flex-shrink:0; }
+.logo-text { font-size:1.3rem; font-weight:700; color:#1a3a5c; white-space:nowrap; }
+.search-bar { flex:1; display:flex; align-items:center; border:2px solid #e0e0e0; border-radius:30px; overflow:hidden; max-width:500px; background:#f8f9fb; }
+.search-bar input { flex:1; border:none; background:transparent; padding:9px 16px; font-size:0.95rem; outline:none; }
+.search-bar button { background:#e91e8c; border:none; color:#fff; padding:9px 18px; cursor:pointer; font-size:1rem; }
+.location-btn { display:flex; align-items:center; gap:6px; border:2px solid #1a3a5c; border-radius:30px; padding:7px 14px; cursor:pointer; font-size:0.85rem; color:#1a3a5c; font-weight:600; background:#fff; white-space:nowrap; }
+.header-icons { display:flex; align-items:center; gap:14px; margin-left:auto; }
+.icon-btn { display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; text-decoration:none; color:#1a3a5c; font-size:0.7rem; font-weight:600; }
+.icon-btn svg { width:24px; height:24px; fill:none; stroke:#1a3a5c; stroke-width:2; }
+.cart-count { background:#e91e8c; color:#fff; border-radius:50%; width:16px; height:16px; font-size:0.6rem; display:flex; align-items:center; justify-content:center; margin-top:-6px; margin-left:12px; }
+
+.navbar { background:#1a3a5c; }
+.nav-inner { max-width:1600px; margin:0 auto; padding:0 40px; display:flex; gap:4px; }
+.nav-inner a { color:rgba(255,255,255,.75); text-decoration:none; padding:13px 18px; font-size:0.9rem; font-weight:600; letter-spacing:.3px; transition:color .2s; white-space:nowrap; }
+.nav-inner a:hover { color:#fff; }
+
+.breadcrumb { max-width:1600px; margin:0 auto; padding:12px 40px; font-size:0.85rem; color:#666; }
+.breadcrumb a { color:#e91e8c; text-decoration:none; }
+.breadcrumb span { margin:0 6px; }
+
+/* HERO */
+.rcp-hero { max-width:1600px; margin:0 auto; padding:6px 40px 6px; }
+.rcp-hero-inner { display:flex; align-items:center; gap:26px; border-radius:24px; padding:26px 32px; position:relative; overflow:hidden; box-shadow:0 8px 26px rgba(180,80,120,.12); }
+.rcp-char { width:200px; height:136px; border-radius:18px; background-image:var(--gfe-spr); background-repeat:no-repeat; background-size:300% 200%; flex-shrink:0; box-shadow:0 6px 18px rgba(0,0,0,.14); animation:rcpFloat 3.4s ease-in-out infinite; }
+@keyframes rcpFloat { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+.rcp-char.him{ background-position:0% 0%; } .rcp-char.her{ background-position:50% 0%; } .rcp-char.kids{ background-position:100% 0%; }
+.rcp-char.brother{ background-position:0% 100%; } .rcp-char.sister{ background-position:50% 100%; } .rcp-char.girlfriend{ background-position:100% 100%; }
+.rcp-htext h1 { font-size:2rem; font-weight:800; color:#3a2540; }
+.rcp-htext p { color:#7a5a68; font-size:1rem; margin-top:6px; max-width:520px; }
+.rcp-htext .rcp-count { display:inline-block; margin-top:12px; background:#fff; color:#e91e8c; font-weight:700; font-size:.82rem; padding:6px 14px; border-radius:20px; box-shadow:0 2px 8px rgba(180,80,120,.15); }
+.rcp-petal { position:absolute; top:-20px; right:-10px; font-size:120px; opacity:.10; transform:rotate(-12deg); pointer-events:none; }
+
+.main-wrap { max-width:1600px; margin:0 auto; padding:14px 40px 50px; }
+.category-header { margin-bottom:18px; }
+.category-header h2 { font-size:1.35rem; font-weight:700; color:#1a3a5c; }
+.category-header p { color:#666; font-size:0.9rem; margin-top:4px; }
+.product-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.product-card { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.07); overflow:hidden; transition:transform .25s,box-shadow .25s; opacity:0; transform:translateY(22px); }
+.product-card.rin { opacity:1; transform:translateY(0); transition:opacity .5s ease, transform .5s cubic-bezier(.2,.9,.25,1.2); }
+.product-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(0,0,0,.13); }
+.product-img-wrap { height:240px; overflow:hidden; position:relative; }
+.product-img { width:100%; height:100%; object-fit:cover; transition:transform .35s; }
+.product-card:hover .product-img { transform:scale(1.05); }
+.product-info { padding:14px; }
+.product-sub-tag { font-size:0.72rem; color:#e91e8c; font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+.product-name { font-size:0.95rem; font-weight:700; color:#1a3a5c; margin-bottom:6px; line-height:1.3; }
+.product-price { font-size:1.05rem; font-weight:800; color:#e91e8c; margin-bottom:12px; }
+.add-to-cart { width:100%; background:#1a3a5c; color:#fff; border:none; border-radius:8px; padding:9px; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .2s; }
+.add-to-cart:hover { background:#e91e8c; }
+.rcp-more { text-align:center; margin-top:30px; }
+.rcp-more a { display:inline-block; background:#1a3a5c; color:#fff; text-decoration:none; padding:12px 26px; border-radius:30px; font-weight:700; font-size:.9rem; transition:background .2s,transform .2s; }
+.rcp-more a:hover { background:#e91e8c; transform:translateY(-2px); }
+
+/* Hamburger / Mobile Nav */
+.mob-ham { display:none; background:none; border:none; cursor:pointer; padding:6px; flex-shrink:0; }
+.mob-ham span { display:block; width:22px; height:2.5px; background:#1a3a5c; border-radius:2px; margin:5px 0; }
+.mob-nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:900; }
+.mob-nav-overlay.open { display:block; }
+.mob-nav-panel { position:fixed; top:0; left:0; width:80%; max-width:290px; height:100%; background:#fff; z-index:901; transform:translateX(-100%); transition:transform .3s ease; overflow-y:auto; padding-bottom:40px; }
+.mob-nav-panel.open { transform:translateX(0); }
+.mob-nav-hdr { background:#1a3a5c; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; }
+.mob-nav-hdr span { color:#fff; font-size:15px; font-weight:700; }
+.mob-nav-close { background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; }
+.mob-nav-link { display:block; padding:13px 18px; font-size:14px; color:#1a3a5c; text-decoration:none; font-weight:600; border-bottom:1px solid #f0f0f0; }
+.mob-nav-link:hover { background:#f5f9ff; }
+html, body { overflow-x:hidden; }
+@media(max-width:768px){
+  .mob-ham { display:block; }
+  .navbar { display:none; }
+  .header-top { padding:10px 12px; flex-wrap:wrap; row-gap:10px; column-gap:8px; align-items:center; }
+  .logo { order:1; margin-right:auto; }
+  .header-icons { order:2; margin-left:auto; }
+  .mob-ham { order:3; }
+  .search-bar { order:4; flex-basis:100%; width:100%; max-width:none; }
+  .location-btn { display:none; }
+  .header-icons .icon-btn:nth-child(1), .header-icons .icon-btn:nth-child(2) { display:none; }
+  .icon-btn { position:relative; }
+  .cart-count { position:absolute; top:-4px; right:-6px; margin:0; }
+  .breadcrumb { padding:8px 14px; font-size:0.8rem; }
+  .rcp-hero { padding:6px 14px; }
+  .rcp-hero-inner { gap:16px; padding:18px; border-radius:18px; }
+  .rcp-char { width:130px; height:88px; border-radius:14px; }
+  .rcp-htext h1 { font-size:1.35rem; }
+  .rcp-htext p { font-size:0.86rem; }
+  .rcp-petal { font-size:80px; }
+  .main-wrap { padding:12px 14px 40px; }
+  .product-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .product-img-wrap { height:170px; }
+  .product-name { font-size:0.85rem; }
+  .product-price { font-size:0.95rem; margin-bottom:8px; }
+  .add-to-cart { font-size:0.78rem; padding:7px; }
+  .product-info { padding:10px; }
+  .logo-text { font-size:1.05rem; }
+}
+@media(max-width:400px){ .product-img-wrap { height:145px; } .rcp-char{ width:110px; height:75px; } }
+</style>
+<link rel="stylesheet" href="shop.css">
+</head>
+<body>
+
+<div class="sticky-header">
+  <div class="header">
+    <div class="header-top">
+      <a href="index2.html" class="logo">
+        <img src="logo.png" alt="Ambika Flowers" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #f9c0d8;">
+        <span class="logo-text">Ambika Flowers</span>
+      </a>
+      <div class="search-bar">
+        <input type="text" placeholder="Search for bouquets, hampers, balloons...">
+        <button>🔍</button>
+      </div>
+      <button class="location-btn">📍 Select Location</button>
+      <button class="mob-ham" onclick="document.getElementById('mnp').classList.add('open');document.getElementById('mno').classList.add('open')"><span></span><span></span><span></span></button>
+      <div class="header-icons">
+        <a href="#" class="icon-btn">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span>Reminders</span>
+        </a>
+        <a href="#" class="icon-btn" style="position:relative">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span>Cart</span>
+          <span class="cart-count">0</span>
+        </a>
+        <a href="#" class="icon-btn">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Login</span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="bouquet.html">🌷 Bouquet</a>
+      <a href="hamper.html">🎁 Hamper</a>
+      <a href="vermala.html">💐 Vermala</a>
+      <a href="car-decor.html">🚗 Car Decor</a>
+      <a href="event-decor.html">🎪 Event Decor</a>
+      <a href="birthday.html">🎂 Birthday</a>
+      <a href="anniversary.html">❤️ Anniversary</a>
+      <a href="balloon.html">🎈 Balloon</a>
+      <a href="flower-jewelry.html">💍 Flower Jewelry</a>
+    </div>
+  </nav>
+</div>
+
+<div class="breadcrumb">
+  <a href="index2.html">Home</a> <span>›</span> <a href="index2.html">Gifts for Everyone</a> <span>›</span> <span id="bc-name">Gifts</span>
+</div>
+
+<section class="rcp-hero">
+  <div class="rcp-hero-inner" id="rcp-hero-inner">
+    <div class="rcp-char" id="rcp-char"></div>
+    <div class="rcp-htext">
+      <h1 id="rcp-title">Gifts</h1>
+      <p id="rcp-sub"></p>
+      <span class="rcp-count" id="rcp-count"></span>
+    </div>
+    <div class="rcp-petal">🌸</div>
+  </div>
+</section>
+
+<div class="main-wrap">
+  <div class="category-header">
+    <h2 id="rcp-h2">Handpicked for you</h2>
+    <p>Curated from our freshest blooms, hampers &amp; surprises — tap any card to add it to your cart.</p>
+  </div>
+  <div class="product-grid" id="product-grid"></div>
+  <div class="rcp-more"><a href="bouquet.html">Explore the full collection →</a></div>
+</div>
+
+<div class="mob-nav-overlay" id="mno" onclick="this.classList.remove('open');document.getElementById('mnp').classList.remove('open')"></div>
+<div class="mob-nav-panel" id="mnp">
+  <div class="mob-nav-hdr"><span>🌸 Menu</span><button class="mob-nav-close" onclick="document.getElementById('mnp').classList.remove('open');document.getElementById('mno').classList.remove('open')">✕</button></div>
+  <a class="mob-nav-link" href="bouquet.html">🌷 Bouquet</a>
+  <a class="mob-nav-link" href="hamper.html">🎁 Hamper</a>
+  <a class="mob-nav-link" href="vermala.html">💐 Vermala</a>
+  <a class="mob-nav-link" href="car-decor.html">🚗 Car Decor</a>
+  <a class="mob-nav-link" href="event-decor.html">🎪 Event Decor</a>
+  <a class="mob-nav-link" href="birthday.html">🎂 Birthday</a>
+  <a class="mob-nav-link" href="anniversary.html">❤️ Anniversary</a>
+  <a class="mob-nav-link" href="balloon.html">🎈 Balloon</a>
+  <a class="mob-nav-link" href="flower-jewelry.html">💍 Flower Jewelry</a>
+</div>
+
+<script>
+(function(){
+  var P = "products/";
+  var DATA = {
+    him: {
+      title:"Gifts for Him", sub:"Bold blooms, chocolates & premium hampers he'll love.", grad:"linear-gradient(135deg,#fdf3e7,#fbe4cf)",
+      items:[
+        {img:"WhatsApp Image 2026-08-20 at 12.36.15 PM (1).jpeg", name:"Grand Rose Bouquet", price:699, tag:"Rose Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.36.45 PM (1).jpeg", name:"Designer Rose Bouquet", price:799, tag:"Rose Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.39 PM (2).jpeg", name:"White Rose Bouquet", price:649, tag:"Rose Bouquet"},
+        {img:"WhatsApp Image 2026-08-21 at 9.18.22 PM.jpeg", name:"iPhone Chocolate Gift Tray", price:2999, tag:"Gift Hamper"},
+        {img:"WhatsApp Image 2026-08-21 at 9.18.09 PM.jpeg", name:"Luxury Chocolate Gift Box", price:1499, tag:"Gift Hamper"},
+        {img:"WhatsApp Image 2026-08-20 at 12.36.23 PM (1).jpeg", name:"Red Rose Special", price:499, tag:"Rose Bouquet"}
+      ]
+    },
+    her: {
+      title:"Gifts for Her", sub:"Elegant bouquets & sweet hampers picked with love.", grad:"linear-gradient(135deg,#fdeef6,#fbd5e8)",
+      items:[
+        {img:"WhatsApp Image 2026-08-20 at 12.36.15 PM (2).jpeg", name:"Pink Rose Bouquet", price:549, tag:"Rose Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.41.44 PM.jpeg", name:"Pink Tulip Bouquet", price:799, tag:"Mixed Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.36.48 PM (2).jpeg", name:"Pastel Mix Bouquet", price:699, tag:"Mixed Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.17 PM (2).jpeg", name:"Rose Box Hamper", price:849, tag:"Gift Hamper"},
+        {img:"WhatsApp Image 2026-08-20 at 12.41.37 PM (1).jpeg", name:"Floral Fantasy Bouquet", price:649, tag:"Mixed Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.36 PM.jpeg", name:"Pink Roses & Carnations", price:599, tag:"Mixed Bouquet"}
+      ]
+    },
+    kids: {
+      title:"Gifts for Kids", sub:"Fun balloons & cheerful surprises to make them smile.", grad:"linear-gradient(135deg,#eaf7ff,#d4ecff)",
+      items:[
+        {img:"WhatsApp Image 2026-08-21 at 9.16.14 PM.jpeg", name:"Birthday Bubble Balloon", price:1499, tag:"Balloon"},
+        {img:"WhatsApp Image 2026-08-21 at 9.16.14 PM (2).jpeg", name:"Birthday Balloon Decor", price:1299, tag:"Balloon"},
+        {img:"WhatsApp Image 2026-08-21 at 9.16.15 PM.jpeg", name:"Car Birthday Balloon Arch", price:1799, tag:"Balloon"},
+        {img:"WhatsApp Image 2026-08-21 at 9.16.14 PM (1).jpeg", name:"Birthday Balloon Hamper", price:1999, tag:"Balloon"},
+        {img:"WhatsApp Image 2026-08-20 at 12.41.40 PM.jpeg", name:"Birthday Gift Hamper", price:699, tag:"Gift Hamper"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.29 PM.jpeg", name:"Sunflower Bouquet", price:649, tag:"Mixed Bouquet"}
+      ]
+    },
+    brother: {
+      title:"Gifts for Brother", sub:"Rakhi-ready blooms, chocolates & gift hampers.", grad:"linear-gradient(135deg,#f3eeff,#e4d9ff)",
+      items:[
+        {img:"WhatsApp Image 2026-08-20 at 12.36.26 PM (1).jpeg", name:"Luxury Rose Bouquet", price:649, tag:"Rose Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.40 PM (1).jpeg", name:"Rose & Ferrero Rocher Bouquet", price:999, tag:"Rose Bouquet"},
+        {img:"WhatsApp Image 2026-08-21 at 9.18.22 PM.jpeg", name:"iPhone Chocolate Gift Tray", price:2999, tag:"Gift Hamper"},
+        {img:"WhatsApp Image 2026-08-20 at 12.36.54 PM (1).jpeg", name:"Signature Rose Bouquet", price:899, tag:"Rose Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.41.40 PM.jpeg", name:"Birthday Gift Hamper", price:699, tag:"Gift Hamper"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.29 PM.jpeg", name:"Sunflower Bouquet", price:649, tag:"Mixed Bouquet"}
+      ]
+    },
+    sister: {
+      title:"Gifts for Sister", sub:"Graceful bouquets & sweet hampers she'll adore.", grad:"linear-gradient(135deg,#fdeef6,#f7c6e0)",
+      items:[
+        {img:"WhatsApp Image 2026-08-20 at 12.36.16 PM (1).jpeg", name:"Colorful Mix Bouquet", price:649, tag:"Mixed Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.17 PM (2).jpeg", name:"Rose Box Hamper", price:849, tag:"Gift Hamper"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.39 PM (1).jpeg", name:"Alstroemeria Mix Bouquet", price:749, tag:"Mixed Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.25 PM.jpeg", name:"Purple Chrysanthemum Bouquet", price:899, tag:"Mixed Bouquet"},
+        {img:"WhatsApp Image 2026-08-21 at 9.18.09 PM.jpeg", name:"Luxury Chocolate Gift Box", price:1499, tag:"Gift Hamper"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.41 PM (2).jpeg", name:"Pink Lily Carnation Bouquet", price:749, tag:"Mixed Bouquet"}
+      ]
+    },
+    girlfriend: {
+      title:"Gifts for Girlfriend", sub:"Romantic setups, red roses & candlelight surprises.", grad:"linear-gradient(135deg,#ffe9ec,#ffcdd6)",
+      items:[
+        {img:"WhatsApp Image 2026-08-20 at 12.36.18 PM.jpeg", name:"Romantic Room Decor", price:2999, tag:"Romantic Setup"},
+        {img:"WhatsApp Image 2026-08-20 at 12.36.18 PM (1).jpeg", name:"Candlelight Setup", price:1999, tag:"Romantic Setup"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.16 PM.jpeg", name:"Rose Petal Love Setup", price:2499, tag:"Romantic Setup"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.40 PM.jpeg", name:"Red Rose Lily Bouquet", price:699, tag:"Anniversary Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.36.25 PM (1).jpeg", name:"Anniversary Special Bouquet", price:799, tag:"Anniversary Bouquet"},
+        {img:"WhatsApp Image 2026-08-20 at 12.42.40 PM (1).jpeg", name:"Rose & Ferrero Rocher Bouquet", price:999, tag:"Rose Bouquet"}
+      ]
+    }
+  };
+
+  function qp(k){ var m=new RegExp("[?&]"+k+"=([^&]+)").exec(location.search); return m?decodeURIComponent(m[1]):""; }
+  var who = (qp("for")||"him").toLowerCase();
+  if(!DATA[who]) who = "him";
+  var d = DATA[who];
+
+  // Custom admin products tagged for this recipient (optional merge)
+  var extra = [];
+  try {
+    var cust = JSON.parse(localStorage.getItem("ambika_products")||"[]");
+    cust.forEach(function(p){
+      var r = (p.recipient||p.forWhom||"").toLowerCase();
+      if(p.custom && r === who){
+        extra.push({ img:p.image, name:p.title||p.name, price:+(p.discountPrice||p.price)||0, tag:"New Arrival", raw:p.image });
+      }
+    });
+  } catch(e){}
+
+  var items = extra.concat(d.items);
+
+  // Hero
+  document.title = d.title + " — Ambika Flowers";
+  document.getElementById("rcp-title").textContent = d.title;
+  document.getElementById("rcp-sub").textContent = d.sub;
+  var shortName = d.title.replace("Gifts for ","").replace("Gifts ","");
+  document.getElementById("bc-name").textContent = d.title;
+  document.getElementById("rcp-h2").textContent = "Handpicked for " + shortName;
+  document.getElementById("rcp-count").textContent = items.length + " curated picks";
+  document.getElementById("rcp-hero-inner").style.background = d.grad;
+  var charEl = document.getElementById("rcp-char");
+  charEl.className = "rcp-char " + who;
+  if(window.AMBIKA_SPRITE){ charEl.style.backgroundImage = 'url("'+window.AMBIKA_SPRITE+'")'; }
+
+  // Grid
+  var grid = document.getElementById("product-grid");
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+  items.forEach(function(it){
+    var src = it.raw ? it.raw : (P + it.img);
+    var card = document.createElement("div");
+    card.className = "product-card";
+    card.setAttribute("data-sub","all");
+    card.setAttribute("data-price", it.price);
+    card.setAttribute("data-name", it.name);
+    card.innerHTML =
+      '<div class="product-img-wrap"><img class="product-img" src="'+esc(src)+'" alt="'+esc(it.name)+'" loading="lazy"></div>'+
+      '<div class="product-info"><div class="product-sub-tag">'+esc(it.tag)+'</div>'+
+      '<div class="product-name">'+esc(it.name)+'</div>'+
+      '<div class="product-price">₹'+it.price+'</div>'+
+      '<button class="add-to-cart">Add to Cart</button></div>';
+    grid.appendChild(card);
+  });
+
+  // Reveal animation (staggered)
+  var cards = grid.querySelectorAll(".product-card");
+  if("IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(en){
+      en.forEach(function(e){ if(e.isIntersecting){ var el=e.target,i=+el.dataset.ri||0; setTimeout(function(){el.classList.add("rin");}, i*70); io.unobserve(el);} });
+    }, { threshold:.12 });
+    cards.forEach(function(c,i){ c.dataset.ri=i; io.observe(c); });
+  } else {
+    cards.forEach(function(c){ c.classList.add("rin"); });
+  }
+})();
+</script>
+<script src="shop.js"></script>
+</body>
+</html>

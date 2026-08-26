@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Account — Ambika Flowers</title>
+<link rel="stylesheet" href="shop.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Segoe UI",Arial,sans-serif;color:#2a2140;background:linear-gradient(135deg,#fff5f9,#fdeef6 50%,#f6f0ff);min-height:100vh;}
+a{text-decoration:none;color:inherit;}
+/* Header */
+.acc-top{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:14px;padding:14px 26px;background:rgba(255,255,255,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(200,120,160,.18);}
+.acc-logo{display:flex;align-items:center;gap:10px;font-weight:800;color:#1a2b45;font-size:18px;}
+.acc-logo .lg{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#f6a5c0,#e84393);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 14px rgba(232,67,147,.4);}
+.acc-back{margin-left:auto;border:1.5px solid #ecd6e1;background:#fff;color:#e84393;border-radius:22px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
+.acc-back:hover{background:#e84393;color:#fff;}
+/* Tabs */
+.acc-wrap{max-width:960px;margin:0 auto;padding:26px 20px 70px;}
+.acc-tabs{display:flex;gap:8px;background:#fff;border:1px solid #f0dbe8;border-radius:30px;padding:5px;width:max-content;margin:0 auto 26px;box-shadow:0 6px 20px rgba(200,80,130,.10);}
+.acc-tab{border:none;background:none;border-radius:24px;padding:11px 26px;font-size:14px;font-weight:700;color:#b58aa0;cursor:pointer;transition:all .25s;}
+.acc-tab.active{background:linear-gradient(135deg,#f47ba9,#e84393);color:#fff;box-shadow:0 6px 16px rgba(232,67,147,.32);}
+.view{display:none;}
+.view.active{display:block;}
+/* Card entrance */
+.rise{opacity:0;transform:translateY(22px);animation:rise .6s cubic-bezier(.2,.8,.25,1) forwards;}
+@keyframes rise{to{opacity:1;transform:none;}}
+.card2{background:#fff;border:1px solid #f2e0ea;border-radius:20px;box-shadow:0 8px 26px rgba(190,80,130,.09);padding:22px;margin-bottom:20px;}
+.card2 h2{font-size:17px;font-weight:800;color:#3a2540;margin-bottom:3px;}
+.card2 .mut{font-size:12.5px;color:#a1758a;margin-bottom:16px;}
+/* Orders */
+.order-card{border:1px solid #f2e0ea;border-radius:18px;padding:18px;margin-bottom:18px;background:linear-gradient(135deg,#fffafc,#fff);transition:transform .22s,box-shadow .22s;}
+.order-card:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(190,80,130,.14);}
+.oc-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px;}
+.oc-id{font-weight:800;font-size:15px;color:#3a2540;}
+.oc-id small{display:block;font-size:11.5px;color:#a1758a;font-weight:500;margin-top:2px;}
+.oc-amt{font-weight:800;color:#e84393;font-size:16px;}
+.oc-body{display:flex;gap:16px;flex-wrap:wrap;}
+.oc-thumbs{display:flex;gap:8px;}
+.oc-thumb{width:60px;height:60px;border-radius:12px;object-fit:cover;background:#f6e5ee;border:1px solid #f0d8e6;}
+.oc-addr{flex:1;min-width:180px;font-size:12.5px;color:#6b5566;line-height:1.5;}
+.oc-addr b{color:#3a2540;}
+.oc-track-btn{border:none;border-radius:22px;padding:10px 20px;font-weight:700;font-size:13px;color:#fff;cursor:pointer;background:linear-gradient(135deg,#f47ba9,#e84393);box-shadow:0 6px 16px rgba(232,67,147,.3);transition:filter .2s,transform .1s;align-self:flex-start;}
+.oc-track-btn:hover{filter:brightness(1.06);}
+.oc-track-btn:active{transform:scale(.96);}
+/* Timeline */
+.tracker{margin-top:4px;max-height:0;overflow:hidden;transition:max-height .5s ease;}
+.tracker.open{max-height:520px;}
+.tl{display:flex;flex-direction:column;gap:0;padding:18px 6px 4px;}
+.tl-step{display:flex;gap:14px;position:relative;padding-bottom:22px;}
+.tl-step:last-child{padding-bottom:0;}
+.tl-dot{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;background:#f0dbe8;color:#b58aa0;z-index:1;transition:all .3s;}
+.tl-step.done .tl-dot{background:linear-gradient(135deg,#f47ba9,#e84393);color:#fff;}
+.tl-step.active .tl-dot{background:linear-gradient(135deg,#f47ba9,#e84393);color:#fff;animation:glow 1.6s infinite;}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(232,67,147,.55);}70%{box-shadow:0 0 0 12px rgba(232,67,147,0);}100%{box-shadow:0 0 0 0 rgba(232,67,147,0);}}
+.tl-line{position:absolute;left:12px;top:26px;bottom:0;width:3px;background:#f0dbe8;}
+.tl-step.done .tl-line{background:linear-gradient(#e84393,#f47ba9);}
+.tl-step:last-child .tl-line{display:none;}
+.tl-txt{padding-top:3px;}
+.tl-txt .t{font-size:13.5px;font-weight:700;color:#3a2540;}
+.tl-txt .s{font-size:11.5px;color:#a1758a;margin-top:2px;}
+.tl-step:not(.done):not(.active) .tl-txt .t{color:#b9a5b3;font-weight:600;}
+/* Delivery details */
+.dd{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
+.dd .box{background:#fdf2f8;border:1px solid #f4dcea;border-radius:13px;padding:12px 14px;font-size:12.5px;color:#6b5566;}
+.dd .box b{display:block;color:#3a2540;font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.giftcard{grid-column:1/-1;background:linear-gradient(135deg,#fff4ea,#ffeef4);border:1px dashed #e8a5c0;border-radius:14px;padding:15px 16px;font-style:italic;color:#8a5568;position:relative;}
+.giftcard .q{font-size:26px;opacity:.35;position:absolute;top:6px;left:10px;}
+.giftcard .gt{padding-left:22px;font-size:13.5px;}
+/* Profile */
+.pf-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.pf-av{width:78px;height:78px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#e84393);display:flex;align-items:center;justify-content:center;color:#fff;font-size:30px;font-weight:800;box-shadow:0 0 0 5px rgba(232,67,147,.18),0 0 26px rgba(232,67,147,.4);animation:ring 2.6s ease-in-out infinite;}
+@keyframes ring{0%,100%{box-shadow:0 0 0 5px rgba(232,67,147,.18),0 0 20px rgba(232,67,147,.35);}50%{box-shadow:0 0 0 7px rgba(232,67,147,.10),0 0 32px rgba(232,67,147,.55);}}
+.pf-hi{font-size:22px;font-weight:800;color:#3a2540;}
+.pf-hi small{display:block;font-size:12.5px;font-weight:600;color:#e84393;margin-top:3px;}
+.pf-badge{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff;font-size:11px;font-weight:800;padding:5px 12px;border-radius:16px;margin-top:8px;display:inline-block;}
+.pf-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px;}
+.pf-fld{display:flex;flex-direction:column;gap:6px;}
+.pf-fld.full{grid-column:1/-1;}
+.pf-fld label{font-size:12px;font-weight:700;color:#a1758a;}
+.pf-fld input{border:1.5px solid #ecd6e1;border-radius:12px;padding:11px 13px;font-size:13.5px;outline:none;background:#fff;transition:border .2s,box-shadow .2s;}
+.pf-fld input:focus{border-color:#e84393;box-shadow:0 0 0 4px rgba(232,67,147,.13);}
+.save-btn{margin-top:8px;border:none;border-radius:13px;padding:13px 26px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(135deg,#f47ba9,#e84393);box-shadow:0 8px 20px rgba(232,67,147,.32);transition:filter .2s,transform .1s;}
+.save-btn:hover{filter:brightness(1.06);}
+.save-btn:active{transform:scale(.97);}
+.save-btn.saved{background:linear-gradient(135deg,#34d399,#10b981);}
+/* Addresses */
+.addr-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.addr-c{border:1px solid #f2e0ea;border-radius:15px;padding:15px 16px;background:#fffafc;position:relative;transition:transform .2s,box-shadow .2s;}
+.addr-c:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(190,80,130,.13);}
+.addr-c .tag{font-size:11px;font-weight:800;color:#e84393;text-transform:uppercase;letter-spacing:.5px;}
+.addr-c p{font-size:13px;color:#6b5566;line-height:1.5;margin-top:6px;}
+.addr-c .edit{position:absolute;top:12px;right:12px;border:none;background:rgba(232,67,147,.1);color:#e84393;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+.addr-add{border:1.5px dashed #e8a5c0;border-radius:15px;display:flex;align-items:center;justify-content:center;color:#e84393;font-weight:700;font-size:14px;cursor:pointer;min-height:96px;transition:background .2s;}
+.addr-add:hover{background:rgba(232,67,147,.06);}
+/* Reminders */
+.rem-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #f2e0ea;border-radius:13px;margin-bottom:10px;background:#fffafc;}
+.rem-item .ic{width:40px;height:40px;border-radius:11px;background:rgba(232,67,147,.12);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+.rem-item .rt{flex:1;font-size:13.5px;font-weight:700;color:#3a2540;}
+.rem-item .rt small{display:block;font-size:11.5px;color:#a1758a;font-weight:500;margin-top:2px;}
+.rem-add{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.rem-add input,.rem-add select{border:1.5px solid #ecd6e1;border-radius:11px;padding:10px 12px;font-size:13px;outline:none;background:#fff;}
+.rem-add input[type=text]{flex:1;min-width:130px;}
+.rem-add button{border:none;border-radius:11px;padding:10px 18px;font-weight:700;font-size:13px;color:#fff;cursor:pointer;background:linear-gradient(135deg,#f47ba9,#e84393);}
+.empty{text-align:center;color:#b58aa0;padding:30px;font-size:14px;}
+@media(max-width:640px){
+  .pf-form,.dd,.addr-grid{grid-template-columns:1fr;}
+  .acc-wrap{padding:18px 14px 60px;}
+}
+</style>
+</head>
+<body>
+<header class="acc-top">
+  <a class="acc-logo" href="index2.html"><span class="lg">🌸</span> Ambika Flowers</a>
+  <button class="acc-back" onclick="location.href='index2.html'">← Back to Shop</button>
+</header>
+
+<div class="acc-wrap">
+  <div class="acc-tabs">
+    <button class="acc-tab" data-v="orders" id="tabOrders">📦 My Orders</button>
+    <button class="acc-tab" data-v="profile" id="tabProfile">👤 My Profile</button>
+  </div>
+
+  <section class="view" id="view-orders"></section>
+  <section class="view" id="view-profile"></section>
+</div>
+
+<div class="toast" id="acctoast" style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#e84393;color:#fff;padding:13px 22px;border-radius:12px;font-weight:600;font-size:14px;opacity:0;transition:all .35s;z-index:9999;pointer-events:none;"></div>
+
+<script src="account.js"></script>
+<script src="shop.js"></script>
+</body>
+</html>

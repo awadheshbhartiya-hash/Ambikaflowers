@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birthday — Ambika Flowers</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; }
+.sticky-header { position:sticky; top:0; z-index:500; }
+.header { background:#fff; border-bottom:1px solid #e0e0e0; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.header-top { display:flex; align-items:center; padding:10px 40px; gap:16px; max-width:1600px; margin:0 auto; }
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; flex-shrink:0; }
+.logo-icon { width:42px; height:42px; background:#e91e8c; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; }
+.logo-text { font-size:1.3rem; font-weight:700; color:#1a3a5c; white-space:nowrap; }
+.search-bar { flex:1; display:flex; align-items:center; border:2px solid #e0e0e0; border-radius:30px; overflow:hidden; max-width:500px; background:#f8f9fb; }
+.search-bar input { flex:1; border:none; background:transparent; padding:9px 16px; font-size:0.95rem; outline:none; }
+.search-bar button { background:#e91e8c; border:none; color:#fff; padding:9px 18px; cursor:pointer; font-size:1rem; }
+.location-btn { display:flex; align-items:center; gap:6px; border:2px solid #1a3a5c; border-radius:30px; padding:7px 14px; cursor:pointer; font-size:0.85rem; color:#1a3a5c; font-weight:600; background:#fff; white-space:nowrap; }
+.header-icons { display:flex; align-items:center; gap:14px; margin-left:auto; }
+.icon-btn { display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; text-decoration:none; color:#1a3a5c; font-size:0.7rem; font-weight:600; }
+.icon-btn svg { width:24px; height:24px; fill:none; stroke:#1a3a5c; stroke-width:2; }
+.navbar { background:#1a3a5c; }
+.nav-inner { max-width:1600px; margin:0 auto; padding:0 40px; display:flex; gap:4px; }
+.nav-inner a { color:rgba(255,255,255,.75); text-decoration:none; padding:13px 18px; font-size:0.9rem; font-weight:600; letter-spacing:.3px; transition:color .2s; white-space:nowrap; }
+.nav-inner a:hover { color:#fff; }
+.nav-inner a.active { color:#fff; border-bottom:3px solid #fff; }
+.breadcrumb { max-width:1600px; margin:0 auto; padding:12px 40px; font-size:0.85rem; color:#666; }
+.breadcrumb a { color:#e91e8c; text-decoration:none; }
+.breadcrumb span { margin:0 6px; }
+.main-wrap { max-width:1600px; margin:0 auto; padding:0 40px 40px; display:flex; gap:28px; }
+.sidebar { width:220px; flex-shrink:0; }
+.sidebar-box { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.06); padding:18px; margin-bottom:18px; }
+.sidebar-box h3 { font-size:0.85rem; font-weight:700; color:#1a3a5c; text-transform:uppercase; letter-spacing:.8px; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid #f0f0f0; }
+.sub-list { list-style:none; }
+.sub-list li { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem; color:#444; transition:all .2s; margin-bottom:2px; }
+.sub-list li:hover { background:#fce4f3; color:#e91e8c; }
+.sub-list li.active-sub { background:#e91e8c; color:#fff; font-weight:600; }
+.sub-list li .count { font-size:0.75rem; opacity:.7; }
+.price-inputs { display:flex; gap:8px; margin-top:8px; }
+.price-inputs input { flex:1; border:1px solid #ddd; border-radius:6px; padding:6px 8px; font-size:0.85rem; width:100%; }
+.apply-btn { width:100%; margin-top:10px; background:#1a3a5c; color:#fff; border:none; border-radius:8px; padding:8px; font-size:0.85rem; font-weight:600; cursor:pointer; }
+.sort-select { width:100%; border:1px solid #ddd; border-radius:8px; padding:8px; font-size:0.85rem; color:#333; }
+.products-area { flex:1; }
+.category-header { margin-bottom:20px; }
+.category-header h1 { font-size:1.6rem; font-weight:700; color:#1a3a5c; }
+.category-header p { color:#666; font-size:0.9rem; margin-top:4px; }
+.product-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.product-card { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.07); overflow:hidden; transition:transform .25s,box-shadow .25s; }
+.product-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(0,0,0,.13); }
+.product-img-wrap { height:240px; overflow:hidden; position:relative; }
+.product-img { width:100%; height:100%; object-fit:cover; transition:transform .35s; }
+.product-card:hover .product-img { transform:scale(1.05); }
+.product-info { padding:14px; }
+.product-sub-tag { font-size:0.72rem; color:#e91e8c; font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+.product-name { font-size:0.95rem; font-weight:700; color:#1a3a5c; margin-bottom:6px; line-height:1.3; }
+.product-price { font-size:1.05rem; font-weight:800; color:#e91e8c; margin-bottom:12px; }
+.add-to-cart { width:100%; background:#1a3a5c; color:#fff; border:none; border-radius:8px; padding:9px; font-size:0.85rem; font-weight:600; cursor:pointer; transition:background .2s; }
+.add-to-cart:hover { background:#e91e8c; }
+/* Hamburger / Mobile Nav */
+.mob-ham { display:none; background:none; border:none; cursor:pointer; padding:6px; flex-shrink:0; }
+.mob-ham span { display:block; width:22px; height:2.5px; background:#1a3a5c; border-radius:2px; margin:5px 0; }
+.mob-nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:900; }
+.mob-nav-overlay.open { display:block; }
+.mob-nav-panel { position:fixed; top:0; left:0; width:80%; max-width:290px; height:100%; background:#fff; z-index:901; transform:translateX(-100%); transition:transform .3s ease; overflow-y:auto; padding-bottom:40px; }
+.mob-nav-panel.open { transform:translateX(0); }
+.mob-nav-hdr { background:#1a3a5c; padding:16px 18px; display:flex; align-items:center; justify-content:space-between; }
+.mob-nav-hdr span { color:#fff; font-size:15px; font-weight:700; }
+.mob-nav-close { background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; }
+.mob-nav-link { display:block; padding:13px 18px; font-size:14px; color:#1a3a5c; text-decoration:none; font-weight:600; border-bottom:1px solid #f0f0f0; }
+.mob-nav-link:hover { background:#f5f9ff; }
+html, body { overflow-x:hidden; }
+@media(max-width:768px){
+  .mob-ham { display:block; }
+  .navbar { display:none; }
+  .header-top { padding:10px 12px; flex-wrap:wrap; row-gap:10px; column-gap:8px; align-items:center; }
+  .logo { order:1; margin-right:auto; }
+  .header-icons { order:2; margin-left:auto; }
+  .mob-ham { order:3; }
+  .search-bar { order:4; flex-basis:100%; width:100%; max-width:none; }
+  .location-btn { display:none; }
+  .header-icons .icon-btn:nth-child(1), .header-icons .icon-btn:nth-child(2) { display:none; }
+  .icon-btn { position:relative; }
+  .cart-count { position:absolute; top:-4px; right:-6px; margin:0; }
+  .breadcrumb { padding:8px 14px; font-size:0.8rem; }
+  .main-wrap { flex-direction:column; padding:0 14px 30px; gap:0; }
+  .sidebar { display:none !important; }
+  .products-area { width:100%; }
+  .category-header { margin-bottom:14px; }
+  .category-header h1 { font-size:1.25rem; }
+  .category-header p { font-size:0.82rem; }
+  .product-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+  .product-img-wrap { height:170px; }
+  .product-name { font-size:0.85rem; }
+  .product-price { font-size:0.95rem; margin-bottom:8px; }
+  .add-to-cart { font-size:0.78rem; padding:7px; }
+  .product-info { padding:10px; }
+  .header-icons { gap:18px; }
+  .icon-btn svg { width:24px; height:24px; }
+  .icon-btn { font-size:0.62rem; }
+  .logo-text { font-size:1.05rem; }
+  .search-bar input { font-size:0.85rem; padding:7px 10px; }
+  .search-bar button { padding:7px 12px; font-size:0.85rem; }
+}
+@media(max-width:400px){ .product-img-wrap { height:145px; } }
+</style>
+<link rel="stylesheet" href="shop.css">
+</head>
+<body>
+<div class="sticky-header">
+  <div class="header">
+    <div class="header-top">
+      <a href="index2.html" class="logo">
+        <img src="logo.png" alt="Ambika Flowers" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #f9c0d8;">
+        <span class="logo-text">Ambika Flowers</span>
+      </a>
+      <div class="search-bar">
+        <input type="text" placeholder="Search for birthday gifts, balloons...">
+        <button>&#128269;</button>
+      </div>
+      <button class="location-btn">&#128205; Select Location</button>
+      <button class="mob-ham" onclick="document.getElementById('mnp').classList.add('open');document.getElementById('mno').classList.add('open')"><span></span><span></span><span></span></button>
+      <div class="header-icons">
+        <a href="#" class="icon-btn">
+          <svg viewBox="0 0 24 24"><path d="M20 7H4l1.5 9h13L20 7z"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/></svg>
+          <span>Cart</span>
+        </a>
+        <a href="#" class="icon-btn">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span>Login</span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="bouquet.html">🌷 Bouquet</a>
+      <a href="hamper.html">🎁 Hamper</a>
+      <a href="vermala.html">💐 Vermala</a>
+      <a href="car-decor.html">🚗 Car Decor</a>
+      <a href="event-decor.html">🎪 Event Decor</a>
+      <a href="birthday.html" class="active">🎂 Birthday</a>
+      <a href="anniversary.html">❤️ Anniversary</a>
+      <a href="balloon.html">🎈 Balloon</a>
+      <a href="flower-jewelry.html">💍 Flower Jewelry</a>
+    </div>
+  </nav>
+</div>
+
+<div class="breadcrumb">
+  <a href="index2.html">Home</a><span>›</span> Birthday
+</div>
+
+<div class="main-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <h3>Categories</h3>
+      <ul class="sub-list">
+        <li class="active-sub" onclick="filterSub('all',this)">All Birthday <span class="count">12</span></li>
+        <li onclick="filterSub('birthday-balloon',this)">Birthday Balloon <span class="count">6</span></li>
+        <li onclick="filterSub('birthday-hamper',this)">Birthday Hamper <span class="count">6</span></li>
+      </ul>
+    </div>
+    <div class="sidebar-box">
+      <h3>Price Range</h3>
+      <div class="price-inputs">
+        <input type="number" placeholder="Min ₹" id="minPrice">
+        <input type="number" placeholder="Max ₹" id="maxPrice">
+      </div>
+      <button class="apply-btn" onclick="applyPrice()">Apply</button>
+    </div>
+    <div class="sidebar-box">
+      <h3>Sort By</h3>
+      <select class="sort-select" onchange="sortProducts(this.value)">
+        <option value="default">Default</option>
+        <option value="price-asc">Price: Low to High</option>
+        <option value="price-desc">Price: High to Low</option>
+        <option value="name-asc">Name: A to Z</option>
+      </select>
+    </div>
+  </aside>
+
+  <div class="products-area">
+    <div class="category-header">
+      <h1>Birthday</h1>
+      <p>Make every birthday unforgettable with our special balloon arrangements and gift hampers</p>
+    </div>
+    <div class="product-grid" id="productGrid">
+
+      <!-- Birthday Balloon -->
+      <div class="product-card" data-sub="birthday-balloon" data-price="499">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.17 PM.jpeg" alt="Birthday Balloon Bouquet" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Balloon</div>
+          <div class="product-name">Birthday Balloon Bouquet</div>
+          <div class="product-price">₹499</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-balloon" data-price="399">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.17 PM (1).jpeg" alt="Happy Birthday Balloons" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Balloon</div>
+          <div class="product-name">Happy Birthday Balloons</div>
+          <div class="product-price">₹399</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-balloon" data-price="599">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.17 PM (2).jpeg" alt="Birthday Balloon Decor" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Balloon</div>
+          <div class="product-name">Birthday Balloon Decor</div>
+          <div class="product-price">₹599</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-balloon" data-price="699">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.27 PM.jpeg" alt="Party Balloon Set" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Balloon</div>
+          <div class="product-name">Party Balloon Set</div>
+          <div class="product-price">₹699</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-balloon" data-price="999">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.31 PM (1).jpeg" alt="Birthday Balloon Arch" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Balloon</div>
+          <div class="product-name">Birthday Balloon Arch</div>
+          <div class="product-price">₹999</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-balloon" data-price="1499">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.45 PM (2).jpeg" alt="Balloon Surprise Setup" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Balloon</div>
+          <div class="product-name">Balloon Surprise Setup</div>
+          <div class="product-price">₹1,499</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <!-- Birthday Hamper -->
+      <div class="product-card" data-sub="birthday-hamper" data-price="799">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.27 PM (2).jpeg" alt="Birthday Special Hamper" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Hamper</div>
+          <div class="product-name">Birthday Special Hamper</div>
+          <div class="product-price">₹799</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-hamper" data-price="649">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.39 PM.jpeg" alt="Birthday Gift Basket" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Hamper</div>
+          <div class="product-name">Birthday Gift Basket</div>
+          <div class="product-price">₹649</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-hamper" data-price="899">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.36.40 PM.jpeg" alt="Birthday Surprise Box" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Hamper</div>
+          <div class="product-name">Birthday Surprise Box</div>
+          <div class="product-price">₹899</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-hamper" data-price="1199">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.42.04 PM.jpeg" alt="Teddy Balloon Combo" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Hamper</div>
+          <div class="product-name">Teddy Balloon Combo</div>
+          <div class="product-price">₹1,199</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-hamper" data-price="549">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.42.23 PM (2).jpeg" alt="Mixed Flower Tray" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Hamper</div>
+          <div class="product-name">Mixed Flower Tray</div>
+          <div class="product-price">₹549</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+      <div class="product-card" data-sub="birthday-hamper" data-price="299">
+        <div class="product-img-wrap"><img class="product-img" src="products/WhatsApp Image 2026-08-20 at 12.42.24 PM.jpeg" alt="Yellow Pink Rose Basket" loading="lazy"></div>
+        <div class="product-info">
+          <div class="product-sub-tag">Birthday Hamper</div>
+          <div class="product-name">Yellow Pink Rose Basket</div>
+          <div class="product-price">₹299</div>
+          <button class="add-to-cart">Add to Cart</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function filterSub(sub, el) {
+  document.querySelectorAll('.sub-list li').forEach(li => li.classList.remove('active-sub'));
+  el.classList.add('active-sub');
+  document.querySelectorAll('.product-card').forEach(card => {
+    card.style.display = (sub === 'all' || card.dataset.sub === sub) ? '' : 'none';
+  });
+}
+function applyPrice() {
+  const min = parseFloat(document.getElementById('minPrice').value) || 0;
+  const max = parseFloat(document.getElementById('maxPrice').value) || Infinity;
+  document.querySelectorAll('.product-card').forEach(card => {
+    card.style.display = (parseFloat(card.dataset.price) >= min && parseFloat(card.dataset.price) <= max) ? '' : 'none';
+  });
+}
+function sortProducts(val) {
+  const grid = document.getElementById('productGrid');
+  const cards = Array.from(grid.querySelectorAll('.product-card'));
+  cards.sort((a,b) => {
+    if(val==='price-asc') return parseFloat(a.dataset.price)-parseFloat(b.dataset.price);
+    if(val==='price-desc') return parseFloat(b.dataset.price)-parseFloat(a.dataset.price);
+    if(val==='name-asc') return a.querySelector('.product-name').textContent.localeCompare(b.querySelector('.product-name').textContent);
+    return 0;
+  });
+  cards.forEach(card => grid.appendChild(card));
+}
+</script>
+<div class="mob-nav-overlay" id="mno" onclick="this.classList.remove('open');document.getElementById('mnp').classList.remove('open')"></div>
+<div class="mob-nav-panel" id="mnp">
+  <div class="mob-nav-hdr"><span>🌸 Menu</span><button class="mob-nav-close" onclick="document.getElementById('mnp').classList.remove('open');document.getElementById('mno').classList.remove('open')">✕</button></div>
+  <a class="mob-nav-link" href="bouquet.html">🌷 Bouquet</a>
+  <a class="mob-nav-link" href="hamper.html">🎁 Hamper</a>
+  <a class="mob-nav-link" href="vermala.html">💐 Vermala</a>
+  <a class="mob-nav-link" href="car-decor.html">🚗 Car Decor</a>
+  <a class="mob-nav-link" href="event-decor.html">🎪 Event Decor</a>
+  <a class="mob-nav-link" href="birthday.html">🎂 Birthday</a>
+  <a class="mob-nav-link" href="anniversary.html">❤️ Anniversary</a>
+  <a class="mob-nav-link" href="balloon.html">🎈 Balloon</a>
+  <a class="mob-nav-link" href="flower-jewelry.html">💍 Flower Jewelry</a>
+</div>
+<script src="shop.js"></script>
+</body>
+</html>
