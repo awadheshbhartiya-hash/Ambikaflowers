@@ -585,6 +585,10 @@
     user = { name: u.name || "Guest", email: u.email || "", phone: u.phone || "", role: u.role || "customer" };
     save(USER_KEY, user);
     try { localStorage.setItem("ambika_isLoggedIn", "true"); localStorage.setItem("ambika_role", user.role); } catch (e) {}
+    // Register the shopper in the shared database so they show up in the admin (Customers)
+    if (user.role === "customer" && (user.phone || user.email)) {
+      try { fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: user.name, email: user.email, phone: user.phone }) }).catch(function () {}); } catch (e) {}
+    }
     clearInterval(resendCd);
     otpCode = null;
     closeAuth();
@@ -1257,6 +1261,8 @@
     };
     var orders = load(ORDERS_KEY) || [];
     orders.unshift(order); save(ORDERS_KEY, orders);
+    // Save the order to the shared database so it shows in the admin panel (any device)
+    try { fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) }).catch(function () {}); } catch (e) {}
     // reflect in tracking + clear cart
     try { logActivity("order", "✅", ((p.user && p.user.name) ? p.user.name.split(" ")[0] : "Guest") + " placed order " + oid + " (₹" + payState.total + ", " + methodName + ")"); } catch (e) {}
     try { cartSnapshot([]); } catch (e) {}
@@ -1404,11 +1410,32 @@
     els.forEach(function (e, i) { e.classList.add("ak-reveal"); e.style.transitionDelay = ((i % 6) * 0.04) + "s"; io.observe(e); });
   }
 
+  /* ---- Live prices from the shared database (admin edits reflect here) ---- */
+  function syncStorefrontPrices() {
+    fetch("/api/products").then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
+      if (!Array.isArray(list) || !list.length) return;
+      var byImg = {};
+      list.forEach(function (p) { if (p && p.image) byImg[String(p.image).split("/").pop()] = p; });
+      document.querySelectorAll(".product-card").forEach(function (card) {
+        var img = card.querySelector(".product-img"); if (!img) return;
+        var src = (img.getAttribute("src") || "").split("/").pop();
+        var p = byImg[src]; if (!p) return;
+        var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : p.price;
+        var money = "₹" + Number(dp).toLocaleString("en-IN");
+        var pe = card.querySelector(".product-price"); if (pe) pe.textContent = money;
+        var cur = card.querySelector(".price-current"); if (cur) cur.textContent = money;
+        card.setAttribute("data-price", dp);
+        var ne = card.querySelector(".product-name"); if (ne && p.title) ne.textContent = p.title;
+      });
+    }).catch(function () {});
+  }
+
   function wire() {
     injectUI();
     logPageView();
     wireSearch();
     renderCustomProducts();
+    syncStorefrontPrices();
     initReveal();
     // live-add products created in the admin (other tab)
     window.addEventListener("storage", function (e) { if (e.key === "ambika_products") renderCustomProducts(); });
