@@ -1334,13 +1334,11 @@ buildBsSlider('all');
 /* Gifts for Everyone — apply character sprite + staggered scroll reveal */
 (function(){
   var spr = window.AMBIKA_SPRITE;
-  if(spr){
-    var pos = ['0% 0%','50% 0%','100% 0%','0% 100%','50% 100%','100% 100%'];
-    document.querySelectorAll('#gfe-slider .gfe-photo').forEach(function(el,i){
-      el.removeAttribute('src');
-      el.style.background = 'url("'+spr+'") '+(pos[i]||'0% 0%')+' / 300% 200% no-repeat';
-    });
-  }
+  var pos = ['0% 0%','50% 0%','100% 0%','0% 100%','50% 100%','100% 100%'];
+  document.querySelectorAll('#gfe-slider .gfe-photo').forEach(function(el,i){
+    el.removeAttribute('src');   /* always kill the broken-image icon */
+    if(spr){ el.style.background = 'url("'+spr+'") '+(pos[i]||'0% 0%')+' / 300% 200% no-repeat'; }
+  });
   var cards = document.querySelectorAll('#gfe-slider .gfe-card');
   if(!cards.length) return;
   if(!('IntersectionObserver' in window)){ cards.forEach(function(c){c.classList.add('gfe-in');}); return; }
