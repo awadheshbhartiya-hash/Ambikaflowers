@@ -341,7 +341,7 @@
   }
 
   /* ---- Dynamic stats derived from the live shared stores ---- */
-  function freshOrders() { var o = lsLoad("ambika_orders"); return (o && o.length) ? o : orders; }
+  function freshOrders() { return (orders && orders.length) ? orders : (lsLoad("ambika_orders") || []); }
   function computeStats() {
     var ords = freshOrders();
     var live = ords.filter(function (o) { return o.statusIdx !== "Cancelled" && o.status !== "Cancelled"; });
