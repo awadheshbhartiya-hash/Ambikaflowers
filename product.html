@@ -48,8 +48,8 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
 .pd-stepper span { min-width:44px; text-align:center; font-weight:700; font-size:1rem; }
 .pd-actions { display:flex; gap:12px; flex-wrap:wrap; }
 .pd-btn { padding:14px 30px; border-radius:12px; font-weight:700; cursor:pointer; border:none; font-size:0.98rem; transition:transform .15s, background .2s, box-shadow .2s; }
-.pd-add { background:#1a3a5c; color:#fff; }
-.pd-add:hover { background:#e91e8c; box-shadow:0 8px 20px rgba(233,30,140,.3); }
+.pd-add { background:transparent; color:#1a3a5c; border:2px solid #1a3a5c; }
+.pd-add:hover { background:#1a3a5c; color:#fff; box-shadow:0 8px 20px rgba(26,58,92,.25); }
 .pd-buy { background:linear-gradient(135deg,#e91e8c,#ff5fa2); color:#fff; }
 .pd-buy:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(233,30,140,.35); }
 .pd-btn:active { transform:scale(.96); }
@@ -117,7 +117,7 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
 <div class="pd-wrap">
   <div class="pd-img-box">
     <span class="pd-badge" id="pd-badge">Fresh &amp; Handcrafted</span>
-    <img class="pd-img" id="pd-img" src="" alt="" onerror="this.style.visibility='hidden'">
+    <img class="pd-img" id="pd-img" alt="">
   </div>
   <div class="pd-info">
     <div class="pd-tag" id="pd-tag">Ambika Flowers</div>
@@ -171,7 +171,9 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
   document.getElementById("pd-tag").textContent = tag || "Ambika Flowers";
   document.getElementById("pd-price").innerHTML = "₹" + price.toLocaleString("en-IN") + ' <small>Free greeting card 🌸</small>';
   var imgEl = document.getElementById("pd-img");
-  imgEl.src = img; imgEl.alt = name;
+  imgEl.onerror = function(){ this.style.visibility = "hidden"; };
+  imgEl.alt = name;
+  if(img){ imgEl.src = img; } else { imgEl.style.visibility = "hidden"; }
 
   // Friendly auto description
   var lower = (name + " " + tag).toLowerCase();

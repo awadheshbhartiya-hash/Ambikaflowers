@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ambika Flowers — Shop</title>
+<script src="characters.js"></script>
 <style>
 
   * { margin:0;padding:0;box-sizing:border-box; }
@@ -168,7 +169,7 @@
   .gfe-card:hover { transform: translateY(-5px); }
   .gfe-img-wrap { width: 250px; height: 172px; border-radius: 22px; overflow: hidden; position: relative; box-shadow: 0 6px 18px rgba(180,80,120,.10); transition: transform .25s, box-shadow .25s; }
   .gfe-card:hover .gfe-img-wrap { box-shadow: 0 16px 40px rgba(180,80,120,.22); }
-  .gfe-photo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; transition:transform .45s cubic-bezier(.2,.9,.25,1.3); will-change:transform; }
+  .gfe-photo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; font-size:0; color:transparent; overflow:hidden; transition:transform .45s cubic-bezier(.2,.9,.25,1.3); will-change:transform; }
   .gfe-card:hover .gfe-photo { transform:scale(1.07); }
   .gfe-shine { position:absolute; inset:0; background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.45) 50%,transparent 60%); transform:translateX(-120%); pointer-events:none; }
   .gfe-card:hover .gfe-shine { animation:gfeShine .9s ease forwards; }
@@ -1334,8 +1335,10 @@ buildBsSlider('all');
 (function(){
   var spr = window.AMBIKA_SPRITE;
   if(spr){
-    document.querySelectorAll('.gfe-photo').forEach(function(el){
-      el.style.backgroundImage = 'url("'+spr+'")';
+    var pos = ['0% 0%','50% 0%','100% 0%','0% 100%','50% 100%','100% 100%'];
+    document.querySelectorAll('#gfe-slider .gfe-photo').forEach(function(el,i){
+      el.removeAttribute('src');
+      el.style.background = 'url("'+spr+'") '+(pos[i]||'0% 0%')+' / 300% 200% no-repeat';
     });
   }
   var cards = document.querySelectorAll('#gfe-slider .gfe-card');
