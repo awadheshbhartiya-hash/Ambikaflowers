@@ -1,5 +1,14 @@
 /* ===== Ambika Flowers — Cart & Auth shared styles ===== */
 
+/* Product cards are clickable (open detail page) */
+.product-card { cursor: pointer; }
+/* Flying flower animation when adding to cart */
+.af-fly-flower {
+  position: fixed; z-index: 99999; font-size: 24px; line-height: 1;
+  pointer-events: none; will-change: transform, opacity;
+  transition: transform 1s cubic-bezier(.5,-0.2,.5,1), opacity 1s ease;
+}
+
 /* Cart badge (injected on product detail / fallback) */
 .js-cart-badge {
   position:absolute; top:-6px; right:-8px; min-width:16px; height:16px; padding:0 4px;
