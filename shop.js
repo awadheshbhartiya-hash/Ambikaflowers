@@ -1131,14 +1131,21 @@
       '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';">' +
       '<div class="pay-qr-fallback">' + fb + '</div>';
   }
+  function refField() {
+    return '<div class="pay-ref-wrap" style="margin-top:14px;">' +
+      '<label style="display:block;font-size:13px;font-weight:700;color:#a23b7a;margin-bottom:6px;">Payment Reference / UPI Transaction ID <span style="color:#d33;">*</span></label>' +
+      '<input id="pay-ref" autocomplete="off" placeholder="Payment ke baad app se mili Transaction/UTR ID daalo" ' +
+      'style="width:100%;box-sizing:border-box;border:1.5px solid #ecd6e1;border-radius:10px;padding:11px 12px;font-size:14px;"></div>';
+  }
   function methodPanel(method, amount) {
-    var upiId = "ambika@upi";
+    var upiId = "7737014301@ybl";
     var uri = "upi://pay?pa=" + upiId + "&pn=Ambika%20Flowers&am=" + amount + "&cu=INR";
     if (method === "upi") {
       return '<div class="pay-panel">' + qrBlock(uri) +
         '<div class="pay-upi"><span>UPI ID:</span><code id="pay-upi-id">' + upiId + '</code><button type="button" class="pay-copy" id="pay-copy">Copy</button></div>' +
         '<a class="pay-app" href="' + uri + '">📱 Pay via UPI App (GPay / PhonePe / Paytm)</a>' +
-        '<div class="pay-secure">🔒 Scan the QR or pay to the UPI ID, then tap “Confirm &amp; Pay”.</div></div>';
+        refField() +
+        '<div class="pay-secure">🔒 QR scan karke ya UPI ID pe payment karo, phir Transaction ID daal ke “Confirm &amp; Pay” dabao.</div></div>';
     }
     if (method === "card") {
       return '<div class="pay-panel"><div class="pay-card">Enter your card / net-banking details (demo — Razorpay-style, no real charge).' +
@@ -1236,10 +1243,10 @@
   function wirePanel() {
     var cp = el("pay-copy");
     if (cp) cp.addEventListener("click", function () {
-      var t = "ambika@upi";
+      var t = "7737014301@ybl";
       try { navigator.clipboard.writeText(t); } catch (e) {}
       cp.textContent = "Copied ✓"; setTimeout(function () { cp.textContent = "Copy"; }, 1500);
-      toast("UPI ID copied: ambika@upi");
+      toast("UPI ID copied: 7737014301@ybl");
     });
   }
   function confirmPay() {
@@ -1247,13 +1254,20 @@
     var method = payState.method;
     var methodName = method === "card" ? "Card" : (method === "cod" ? "COD" : "UPI");
     var isCod = method === "cod";
+    // UPI payment ke liye Transaction/Reference ID zaroori hai
+    var reference = (el("pay-ref") && el("pay-ref").value.trim()) || "";
+    if (method === "upi" && !reference) {
+      toast("Pehle payment karo, phir Transaction / Reference ID daalo");
+      var rf = el("pay-ref"); if (rf) { rf.style.borderColor = "#d33"; rf.focus(); }
+      return;
+    }
     var oid = "AMB-" + Math.floor(1000 + Math.random() * 9000);
     var now = Date.now();
     var order = {
       id: oid, customer: (p.user && p.user.name) || "Guest", phone: (p.user && p.user.phone) || "",
       items: p.items, product: p.items.length === 1 ? p.items[0].name : (p.items[0].name + " +" + (p.items.length - 1) + " more"),
       amount: payState.total, statusIdx: 0, status: "Order Received",
-      method: methodName, paymentStatus: isCod ? "Pending COD" : "Paid",
+      reference: reference, method: methodName, paymentStatus: isCod ? "Pending COD" : "Paid",
       deliveryDate: (el("pay-date") && el("pay-date").value) || "", slot: (el("pay-slot") && el("pay-slot").value) || "",
       address: (el("pay-addr") && el("pay-addr").value.trim()) || "", gift: (el("pay-gift") && el("pay-gift").value.trim()) || "",
       deliveryFee: payState.deliveryFee || 0, deliveryZone: payState.deliveryZone || "",

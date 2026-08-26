@@ -822,9 +822,12 @@
       openModal("Order " + o.id,
         gallery +
         '<div class="grid g-2" style="gap:10px;margin-bottom:16px;">' +
-          kv("Customer", o.customer || "Guest") + kv("Amount", inr(o.amount)) + kv("Status", o.status || deriveStatus(o)) +
+          kv("Customer", o.customer || "Guest") + kv("Phone", o.phone || "—") + kv("Amount", inr(o.amount)) + kv("Status", o.status || deriveStatus(o)) +
+          kv("Payment", (o.method || "—") + (o.paymentStatus ? " · " + o.paymentStatus : "")) +
+          kv("Payment Ref / Txn ID", o.reference || "—") +
           kv("Placed On", placed) + kv("Tracking #", o.track || "—") +
         '</div>' +
+        (o.address ? '<div class="section-title">📍 Delivery Address</div><div class="addr-box">' + esc(o.address) + '</div>' : '') +
         (o.greeting ? '<div class="section-title">🎁 Gifting Details</div><div class="addr-box"><b>Greeting Card Message</b>' + esc(o.greeting) + '</div>' : '') +
         '<div class="grid g-2" style="gap:10px;">' + kv("Delivery Date", o.deliveryDate || "—") + kv("Preferred Slot", o.slot || "—") + '</div>');
     },

@@ -12,17 +12,22 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 /* ---------- data store ---------- */
+// Prefer the Railway volume's real mount path so data persists wherever the
+// volume was attached (RAILWAY_VOLUME_MOUNT_PATH is set automatically by Railway).
 function pickDataDir() {
-  const preferred = process.env.DATA_DIR || "/data";
-  try { fs.mkdirSync(preferred, { recursive: true }); fs.accessSync(preferred, fs.constants.W_OK); return preferred; }
-  catch (e) {
-    const local = path.join(__dirname, "data");
-    try { fs.mkdirSync(local, { recursive: true }); } catch (e2) {}
-    return local;
+  const candidates = [process.env.RAILWAY_VOLUME_MOUNT_PATH, process.env.DATA_DIR, "/data"].filter(Boolean);
+  for (let i = 0; i < candidates.length; i++) {
+    try { fs.mkdirSync(candidates[i], { recursive: true }); fs.accessSync(candidates[i], fs.constants.W_OK); return candidates[i]; }
+    catch (e) {}
   }
+  const local = path.join(__dirname, "data");
+  try { fs.mkdirSync(local, { recursive: true }); } catch (e2) {}
+  return local;
 }
 const DATA_DIR = pickDataDir();
 const STORE_FILE = path.join(DATA_DIR, "store.json");
+let STORE_EXISTED_ON_BOOT = false;
+try { STORE_EXISTED_ON_BOOT = fs.existsSync(STORE_FILE); } catch (e) {}
 
 function loadSeed() {
   try { return JSON.parse(fs.readFileSync(path.join(__dirname, "catalog-seed.json"), "utf8")); }
@@ -100,7 +105,7 @@ app.post("/api/customers", (req, res) => {
   store.customers.unshift(c); save(); res.json(c);
 });
 
-app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
+app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
 
 /* ---------- static site ---------- */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));
