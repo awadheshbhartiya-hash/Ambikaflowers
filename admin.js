@@ -4,6 +4,12 @@
 (function () {
   "use strict";
 
+  /* ---- Backend API base ----------------------------------------------------
+     Admin panel is hosted on Vercel; the API (server.js) lives on Railway. Set
+     the Railway backend URL below (same value as in shop.js).
+     Override at runtime with window.AMBIKA_API_BASE if needed. */
+  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production.up.railway.app").replace(/\/+$/, "");
+
   /* One-time reset: clear demo/seed data so the panel starts LIVE at zero.
      Real products you uploaded (custom) are preserved. Runs once per browser. */
   try {
@@ -267,8 +273,8 @@
     { id: "P163", title: "25th Anniversary Box", category: "Bouquet", price: 1499, discount: 0, stock: 25, tags: "anniversary-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.38 PM.jpeg", custom: false }
   ];
   /* ---- Server API (small shared JSON database on the Railway backend) ---- */
-  function apiGet(p) { return fetch(p).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
-  function apiSend(method, p, body) { return fetch(p, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
+  function apiGet(p) { return fetch(API_BASE + p).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
+  function apiSend(method, p, body) { return fetch(API_BASE + p, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
   function normalizeOrder(o) {
     if (o.statusIdx === undefined) o.statusIdx = FLORAL.indexOf(o.status) >= 0 ? FLORAL.indexOf(o.status) : 0;
     o.status = deriveStatus(o);

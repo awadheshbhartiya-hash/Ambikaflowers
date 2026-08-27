@@ -5,6 +5,13 @@
 (function () {
   "use strict";
 
+  /* ---- Backend API base ----------------------------------------------------
+     Frontend is hosted on Vercel; the API (server.js) lives on Railway. Set the
+     Railway backend URL below (e.g. "https://ambika-backend.up.railway.app").
+     Leave it "" only if the page is served by the Node backend itself.
+     You can also override at runtime with window.AMBIKA_API_BASE. */
+  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production.up.railway.app").replace(/\/+$/, "");
+
   /* One-time reset: wipe demo/seed data so the store starts LIVE at zero.
      Real products you uploaded (custom) are preserved. Runs once per browser. */
   try {
@@ -592,7 +599,7 @@
     try { localStorage.setItem("ambika_isLoggedIn", "true"); localStorage.setItem("ambika_role", user.role); } catch (e) {}
     // Register the shopper in the shared database so they show up in the admin (Customers)
     if (user.role === "customer" && (user.phone || user.email)) {
-      try { fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: user.name, email: user.email, phone: user.phone }) }).catch(function () {}); } catch (e) {}
+      try { fetch(API_BASE + "/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: user.name, email: user.email, phone: user.phone }) }).catch(function () {}); } catch (e) {}
     }
     clearInterval(resendCd);
     otpCode = null;
@@ -1292,7 +1299,7 @@
     var orders = load(ORDERS_KEY) || [];
     orders.unshift(order); save(ORDERS_KEY, orders);
     // Save the order to the shared database so it shows in the admin panel (any device)
-    try { fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) }).catch(function () {}); } catch (e) {}
+    try { fetch(API_BASE + "/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) }).catch(function () {}); } catch (e) {}
     // reflect in tracking + clear cart
     try { logActivity("order", "✅", ((p.user && p.user.name) ? p.user.name.split(" ")[0] : "Guest") + " placed order " + oid + " (₹" + payState.total + ", " + methodName + ")"); } catch (e) {}
     try { cartSnapshot([]); } catch (e) {}
@@ -1442,7 +1449,7 @@
 
   /* ---- Live prices from the shared database (admin edits reflect here) ---- */
   function syncStorefrontPrices() {
-    fetch("/api/products").then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
+    fetch(API_BASE + "/api/products").then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
       if (!Array.isArray(list) || !list.length) return;
       var byImg = {};
       list.forEach(function (p) { if (p && p.image) byImg[String(p.image).split("/").pop()] = p; });

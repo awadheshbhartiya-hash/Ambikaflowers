@@ -58,6 +58,17 @@ writeStore(store);
 function save() { try { writeStore(store); } catch (e) { console.error("store write failed", e); } }
 function rid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
+/* ---------- CORS ---------- */
+// The frontend is hosted separately (Vercel) and calls this API cross-origin.
+// No cookies/credentials are used, so a permissive origin is safe here.
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN || "*");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 /* ---------- API ---------- */
 app.use(express.json({ limit: "2mb" }));
 
