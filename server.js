@@ -11,13 +11,6 @@ const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Force HTTPS (Railway terminates TLS and sets x-forwarded-proto) -> removes "Not Secure"
-app.use((req, res, next) => {
-  var proto = req.headers["x-forwarded-proto"];
-  if (proto && proto !== "https") return res.redirect(301, "https://" + req.headers.host + req.originalUrl);
-  next();
-});
-
 /* ---------- data store ---------- */
 // Prefer the Railway volume's real mount path so data persists wherever the
 // volume was attached (RAILWAY_VOLUME_MOUNT_PATH is set automatically by Railway).
@@ -54,6 +47,13 @@ if (!store || typeof store !== "object") store = {};
 if (!Array.isArray(store.products) || store.products.length === 0) store.products = loadSeed();
 if (!Array.isArray(store.orders)) store.orders = [];
 if (!Array.isArray(store.customers)) store.customers = [];
+// Keep product photos in sync with the bundled catalogue by id, so image swaps
+// (e.g. new Vermala photos) deploy without wiping orders/customers. Only the image
+// is refreshed here; prices/stock/edits stay as they are in the store.
+(function () {
+  var byId = {}; loadSeed().forEach(function (p) { byId[p.id] = p; });
+  store.products.forEach(function (p) { var s = byId[p.id]; if (s && s.image && p.image !== s.image) p.image = s.image; });
+})();
 writeStore(store);
 function save() { try { writeStore(store); } catch (e) { console.error("store write failed", e); } }
 function rid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -115,7 +115,6 @@ app.post("/api/customers", (req, res) => {
 app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
 
 /* ---------- static site ---------- */
-app.get("/favicon.ico", (req, res) => res.sendFile(path.join(__dirname, "logo.png")));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));
 app.use(express.static(__dirname, { extensions: ["html"] }));
 app.use((req, res) => res.sendFile(path.join(__dirname, "index2.html")));
