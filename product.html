@@ -169,7 +169,7 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
   document.getElementById("bc-name").textContent = name;
   document.getElementById("bc-cat").textContent = tag || "Products";
   document.getElementById("pd-tag").textContent = tag || "Ambika Flowers";
-  document.getElementById("pd-price").innerHTML = "Coming Soon" + ' <small>Free greeting card 🌸</small>';
+  document.getElementById("pd-price").innerHTML = (price > 0 ? "₹" + price.toLocaleString("en-IN") : "Coming Soon") + ' <small>Free greeting card 🌸</small>';
   var imgEl = document.getElementById("pd-img");
   imgEl.onerror = function(){ this.style.visibility = "hidden"; };
   imgEl.alt = name;
