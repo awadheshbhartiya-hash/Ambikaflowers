@@ -7,6 +7,12 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
+
+// Razorpay — Key ID is public (safe in code); the SECRET must come from a Railway
+// environment variable named RAZORPAY_KEY_SECRET (never commit the secret to GitHub).
+const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID || "rzp_live_TUgdos67Jx1dew";
+const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -111,7 +117,34 @@ app.post("/api/customers", (req, res) => {
   store.customers.unshift(c); save(); res.json(c);
 });
 
-app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
+// RAZORPAY
+app.get("/api/razorpay/config", (req, res) => res.json({ keyId: RZP_KEY_ID, enabled: !!RZP_KEY_SECRET }));
+app.post("/api/razorpay/order", async (req, res) => {
+  try {
+    if (!RZP_KEY_SECRET) return res.status(500).json({ error: "Razorpay secret not configured (set RAZORPAY_KEY_SECRET in Railway)" });
+    var rupees = Math.max(1, Math.round(Number(req.body && req.body.amount) || 0));
+    var auth = "Basic " + Buffer.from(RZP_KEY_ID + ":" + RZP_KEY_SECRET).toString("base64");
+    var rr = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": auth },
+      body: JSON.stringify({ amount: rupees * 100, currency: "INR", receipt: "rcpt_" + Date.now() })
+    });
+    var data = await rr.json();
+    if (!rr.ok) return res.status(400).json({ error: (data && data.error && data.error.description) || "order failed" });
+    res.json({ id: data.id, amount: data.amount, currency: data.currency, keyId: RZP_KEY_ID });
+  } catch (e) { res.status(500).json({ error: String(e && e.message || e) }); }
+});
+app.post("/api/razorpay/verify", (req, res) => {
+  try {
+    var b = req.body || {};
+    if (!RZP_KEY_SECRET) return res.status(500).json({ ok: false });
+    var expected = crypto.createHmac("sha256", RZP_KEY_SECRET)
+      .update(String(b.razorpay_order_id) + "|" + String(b.razorpay_payment_id)).digest("hex");
+    res.json({ ok: expected === b.razorpay_signature });
+  } catch (e) { res.status(500).json({ ok: false, error: String(e && e.message || e) }); }
+});
+
+app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, razorpay: !!RZP_KEY_SECRET, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
 
 /* ---------- static site ---------- */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));

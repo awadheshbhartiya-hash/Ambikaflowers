@@ -1140,19 +1140,12 @@
   function methodPanel(method, amount) {
     var upiId = "7737014301@ybl";
     var uri = "upi://pay?pa=" + upiId + "&pn=Ambika%20Flowers&am=" + amount + "&cu=INR";
-    if (method === "upi") {
-      return '<div class="pay-panel">' + qrBlock(uri) +
-        '<div class="pay-upi"><span>UPI ID:</span><code id="pay-upi-id">' + upiId + '</code><button type="button" class="pay-copy" id="pay-copy">Copy</button></div>' +
-        '<a class="pay-app" href="' + uri + '">📱 Pay via UPI App (GPay / PhonePe / Paytm)</a>' +
-        refField() +
-        '<div class="pay-secure">🔒 QR scan karke ya UPI ID pe payment karo, phir Transaction ID daal ke “Confirm &amp; Pay” dabao.</div></div>';
-    }
-    if (method === "card") {
-      return '<div class="pay-panel"><div class="pay-card">Enter your card / net-banking details (demo — Razorpay-style, no real charge).' +
-        '<div class="pay-card-row"><input class="full" placeholder="Card Number 4242 4242 4242 4242" inputmode="numeric" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;">' +
-        '<input placeholder="MM / YY" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;">' +
-        '<input placeholder="CVV" inputmode="numeric" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;"></div></div>' +
-        '<div class="pay-secure">🔒 Secured by Razorpay (demo). Cards are not actually charged.</div></div>';
+    if (method === "upi" || method === "card") {
+      return '<div class="pay-panel"><div style="text-align:center;padding:22px 14px;">' +
+        '<div style="font-size:40px;margin-bottom:8px;">🔐</div>' +
+        '<div style="font-size:16px;font-weight:800;color:#3a2540;margin-bottom:6px;">Secure Online Payment</div>' +
+        '<div style="font-size:13.5px;color:#666;line-height:1.5;">“<b>Confirm &amp; Pay</b>” dabate hi Razorpay ka secure window khulega — usme <b>UPI, GPay/PhonePe/Paytm, Cards, Net Banking &amp; Wallets</b> sab hain. Payment hote hi order apne aap confirm ho jayega.</div>' +
+        '</div><div class="pay-secure">🔒 100% Secure · Powered by Razorpay</div></div>';
     }
     return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay ₹' + amount + ' in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
       '<div class="pay-secure">Your order will be marked <b>Pending COD</b> until delivery.</div></div>';
@@ -1249,25 +1242,61 @@
       toast("UPI ID copied: 7737014301@ybl");
     });
   }
+  function ensureRazorpay(cb) {
+    if (window.Razorpay) { cb(); return; }
+    var s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = function () { cb(); };
+    s.onerror = function () { toast("Payment window load nahi hua — internet check karo"); };
+    document.head.appendChild(s);
+  }
   function confirmPay() {
+    if (payState.method === "cod") { finalizeOrder("COD", "Pending COD", ""); return; }
+    startRazorpay();
+  }
+  function startRazorpay() {
+    var amt = payState.total, btn = el("pay-confirm");
+    if (btn) { btn.disabled = true; btn.style.opacity = ".7"; }
+    function reset() { if (btn) { btn.disabled = false; btn.style.opacity = ""; } }
+    fetch("/api/razorpay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: amt }) })
+      .then(function (r) { return r.json(); })
+      .then(function (o) {
+        reset();
+        if (!o || !o.id) { toast(o && o.error ? o.error : "Payment shuru nahi hua, dobara try karo"); return; }
+        ensureRazorpay(function () {
+          var u = (payState.payload && payState.payload.user) || {};
+          var rzp = new window.Razorpay({
+            key: o.keyId, amount: o.amount, currency: o.currency || "INR", order_id: o.id,
+            name: "Ambika Flowers", description: "Order Payment", image: "logo.png",
+            prefill: { name: u.name || "", contact: (u.phone || "").replace(/\D/g, ""), email: u.email || "" },
+            theme: { color: "#e84393" },
+            handler: function (resp) {
+              fetch("/api/razorpay/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(resp) })
+                .then(function (r) { return r.json(); })
+                .then(function (v) {
+                  if (v && v.ok) finalizeOrder("Online (Razorpay)", "Paid", resp.razorpay_payment_id || "");
+                  else toast("Payment verify nahi hua — support se baat karo");
+                })
+                .catch(function () { finalizeOrder("Online (Razorpay)", "Paid", resp.razorpay_payment_id || ""); });
+            },
+            modal: { ondismiss: function () { toast("Payment cancel ho gaya"); } }
+          });
+          try { rzp.on("payment.failed", function () { toast("Payment fail ho gaya, dobara try karo"); }); } catch (e) {}
+          rzp.open();
+        });
+      })
+      .catch(function () { reset(); toast("Payment server tak nahi pahuncha, dobara try karo"); });
+  }
+  function finalizeOrder(methodName, paymentStatus, reference) {
     var p = payState.payload;
-    var method = payState.method;
-    var methodName = method === "card" ? "Card" : (method === "cod" ? "COD" : "UPI");
-    var isCod = method === "cod";
-    // UPI payment ke liye Transaction/Reference ID zaroori hai
-    var reference = (el("pay-ref") && el("pay-ref").value.trim()) || "";
-    if (method === "upi" && !reference) {
-      toast("Pehle payment karo, phir Transaction / Reference ID daalo");
-      var rf = el("pay-ref"); if (rf) { rf.style.borderColor = "#d33"; rf.focus(); }
-      return;
-    }
+    var isCod = methodName === "COD";
     var oid = "AMB-" + Math.floor(1000 + Math.random() * 9000);
     var now = Date.now();
     var order = {
       id: oid, customer: (p.user && p.user.name) || "Guest", phone: (p.user && p.user.phone) || "",
       items: p.items, product: p.items.length === 1 ? p.items[0].name : (p.items[0].name + " +" + (p.items.length - 1) + " more"),
       amount: payState.total, statusIdx: 0, status: "Order Received",
-      reference: reference, method: methodName, paymentStatus: isCod ? "Pending COD" : "Paid",
+      reference: reference, method: methodName, paymentStatus: paymentStatus,
       deliveryDate: (el("pay-date") && el("pay-date").value) || "", slot: (el("pay-slot") && el("pay-slot").value) || "",
       address: (el("pay-addr") && el("pay-addr").value.trim()) || "", gift: (el("pay-gift") && el("pay-gift").value.trim()) || "",
       deliveryFee: payState.deliveryFee || 0, deliveryZone: payState.deliveryZone || "",
