@@ -7,7 +7,6 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
-const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,32 +42,20 @@ function writeStore(store) {
   fs.writeFileSync(tmp, JSON.stringify(store, null, 1));
   fs.renameSync(tmp, STORE_FILE);
 }
+// Bump this when the bundled catalogue (catalog-seed.json) changes and the live
+// product list should be rebuilt. Orders & customers are always preserved.
+const CATALOG_VERSION = 4;
 let store = readStore();
 if (!store || typeof store !== "object") store = {};
-if (!Array.isArray(store.products) || store.products.length === 0) store.products = loadSeed();
 if (!Array.isArray(store.orders)) store.orders = [];
 if (!Array.isArray(store.customers)) store.customers = [];
-// Keep product photos in sync with the bundled catalogue by id, so image swaps
-// (e.g. new Vermala photos) deploy without wiping orders/customers. Only the image
-// is refreshed here; prices/stock/edits stay as they are in the store.
-(function () {
-  var byId = {}; loadSeed().forEach(function (p) { byId[p.id] = p; });
-  store.products.forEach(function (p) { var s = byId[p.id]; if (s && s.image && p.image !== s.image) p.image = s.image; });
-})();
+if (!Array.isArray(store.products) || store.products.length === 0 || store.catalogVersion !== CATALOG_VERSION) {
+  store.products = loadSeed();          // rebuild catalogue from the new seed
+  store.catalogVersion = CATALOG_VERSION;
+}
 writeStore(store);
 function save() { try { writeStore(store); } catch (e) { console.error("store write failed", e); } }
 function rid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
-
-/* ---------- CORS ---------- */
-// The frontend is hosted separately (Vercel) and calls this API cross-origin.
-// No cookies/credentials are used, so a permissive origin is safe here.
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN || "*");
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
 
 /* ---------- API ---------- */
 app.use(express.json({ limit: "2mb" }));
@@ -125,48 +112,6 @@ app.post("/api/customers", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
-
-/* ---------- RAZORPAY PAYMENTS ----------
-   Keys come from Railway environment variables — never hard-coded:
-     key_id      (public key id, rzp_live_xxx / rzp_test_xxx)
-     key_secret  (secret — server-side only, never sent to the browser)
-   (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET also accepted as fallbacks.)
-   Uses Node 18+ built-in fetch + crypto, so no extra npm dependency. */
-const RZP_KEY_ID = process.env.key_id || process.env.RAZORPAY_KEY_ID || "";
-const RZP_KEY_SECRET = process.env.key_secret || process.env.RAZORPAY_KEY_SECRET || "";
-function rzpConfigured() { return RZP_KEY_ID && RZP_KEY_SECRET; }
-
-// Create a Razorpay order. Body: { amount } in rupees. Returns order + public key id.
-app.post("/api/razorpay/order", async (req, res) => {
-  if (!rzpConfigured()) return res.status(500).json({ error: "Payments not configured. Set key_id and key_secret." });
-  const rupees = Number(req.body && req.body.amount);
-  if (!rupees || rupees <= 0) return res.status(400).json({ error: "Invalid amount" });
-  try {
-    const auth = "Basic " + Buffer.from(RZP_KEY_ID + ":" + RZP_KEY_SECRET).toString("base64");
-    const r = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: auth },
-      body: JSON.stringify({ amount: Math.round(rupees * 100), currency: "INR", receipt: "AMB-" + Date.now(), notes: { source: "ambika-flowers-web" } })
-    });
-    const data = await r.json();
-    if (!r.ok) { console.error("Razorpay order error:", data); return res.status(502).json({ error: (data && data.error && data.error.description) || "Razorpay order failed" }); }
-    res.json({ orderId: data.id, amount: data.amount, currency: data.currency, keyId: RZP_KEY_ID });
-  } catch (e) {
-    console.error("Razorpay order exception:", e);
-    res.status(502).json({ error: "Could not reach Razorpay" });
-  }
-});
-
-// Verify the payment signature after checkout. Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
-app.post("/api/razorpay/verify", (req, res) => {
-  if (!rzpConfigured()) return res.status(500).json({ ok: false, error: "Payments not configured" });
-  const b = req.body || {};
-  if (!b.razorpay_order_id || !b.razorpay_payment_id || !b.razorpay_signature) return res.status(400).json({ ok: false, error: "Missing fields" });
-  const expected = crypto.createHmac("sha256", RZP_KEY_SECRET).update(b.razorpay_order_id + "|" + b.razorpay_payment_id).digest("hex");
-  const given = String(b.razorpay_signature);
-  const ok = expected.length === given.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(given));
-  res.json({ ok: ok });
-});
 
 /* ---------- static site ---------- */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));
