@@ -1131,7 +1131,7 @@
   /* ==========================================================================
      CHECKOUT / PAYMENT
      ========================================================================== */
-  var payState = { method: "upi", payload: null, onComplete: null };
+  var payState = { method: "online", payload: null, onComplete: null };
   function injectPay() {
     if (el("af-pay")) return;
     var w = document.createElement("div");
@@ -1161,21 +1161,10 @@
       'style="width:100%;box-sizing:border-box;border:1.5px solid #ecd6e1;border-radius:10px;padding:11px 12px;font-size:14px;"></div>';
   }
   function methodPanel(method, amount) {
-    var upiId = "7737014301@ybl";
-    var uri = "upi://pay?pa=" + upiId + "&pn=Ambika%20Flowers&am=" + amount + "&cu=INR";
-    if (method === "upi") {
-      return '<div class="pay-panel">' + qrBlock(uri) +
-        '<div class="pay-upi"><span>UPI ID:</span><code id="pay-upi-id">' + upiId + '</code><button type="button" class="pay-copy" id="pay-copy">Copy</button></div>' +
-        '<a class="pay-app" href="' + uri + '">📱 Pay via UPI App (GPay / PhonePe / Paytm)</a>' +
-        refField() +
-        '<div class="pay-secure">🔒 QR scan karke ya UPI ID pe payment karo, phir Transaction ID daal ke “Confirm &amp; Pay” dabao.</div></div>';
-    }
-    if (method === "card") {
-      return '<div class="pay-panel"><div class="pay-card">Enter your card / net-banking details (demo — Razorpay-style, no real charge).' +
-        '<div class="pay-card-row"><input class="full" placeholder="Card Number 4242 4242 4242 4242" inputmode="numeric" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;">' +
-        '<input placeholder="MM / YY" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;">' +
-        '<input placeholder="CVV" inputmode="numeric" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;"></div></div>' +
-        '<div class="pay-secure">🔒 Secured by Razorpay (demo). Cards are not actually charged.</div></div>';
+    if (method === "online") {
+      return '<div class="pay-panel"><div class="pay-card">💳 <b>Pay securely via Razorpay</b>' +
+        '<br>UPI · Cards · Net Banking · Wallets — sab kuch ek secure window me. Neeche button dabao aur Razorpay popup me payment complete karo. 🌸</div>' +
+        '<div class="pay-secure">🔒 100% Secure Payments · Powered by Razorpay</div></div>';
     }
     return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay <b>₹' + ((payState && payState.total) ? payState.total.toLocaleString("en-IN") : "0") + '</b> in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
       '<div class="pay-secure">Your order will be marked <b>Pending COD</b> until delivery.</div></div>';
@@ -1240,13 +1229,12 @@
         '<div class="pay-fld full"><label>Gift Card Message (optional)</label><textarea id="pay-gift" rows="2" placeholder="Write a sweet note…"></textarea></div>' +
       '</div>' +
       '<div class="pay-methods" id="pay-methods">' +
-        '<div class="pay-m sel" data-m="upi"><span class="pe">📲</span>UPI / QR</div>' +
-        '<div class="pay-m" data-m="card"><span class="pe">💳</span>Card / Net Banking</div>' +
+        '<div class="pay-m sel" data-m="online"><span class="pe">💳</span>Pay Online</div>' +
         '<div class="pay-m" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
       '</div>' +
       '<div id="pay-panel">' + methodPanel(payState.method, total) + '</div>' +
-      '<button class="pay-confirm" id="pay-confirm">Confirm &amp; Pay · Coming Soon</button>' +
-      '<div class="pay-secure">🔒 100% Secure Payments · Razorpay / UPI</div>';
+      '<button class="pay-confirm" id="pay-confirm">' + confirmLabel(payState.method) + '</button>' +
+      '<div class="pay-secure">🔒 100% Secure Payments · Powered by Razorpay</div>';
     el("af-pay-body").innerHTML = body;
 
     el("pay-detect").addEventListener("click", function () { detectDeliveryLocation(true); });
@@ -1256,7 +1244,7 @@
         m.classList.add("sel"); payState.method = m.getAttribute("data-m");
         el("pay-panel").innerHTML = methodPanel(payState.method, payState.total);
         var cb = el("pay-confirm");
-        if (cb) cb.innerHTML = payState.method === "cod" ? "Place Order · Coming Soon" : "Confirm &amp; Pay · Coming Soon";
+        if (cb) cb.innerHTML = confirmLabel(payState.method);
         wirePanel();
       });
     });
@@ -1272,18 +1260,72 @@
       toast("UPI ID copied: 7737014301@ybl");
     });
   }
+  var rzpScriptPromise = null;
+  function loadRazorpay() {
+    if (window.Razorpay) return Promise.resolve(true);
+    if (rzpScriptPromise) return rzpScriptPromise;
+    rzpScriptPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "https://checkout.razorpay.com/v1/checkout.js";
+      s.onload = function () { resolve(true); };
+      s.onerror = function () { rzpScriptPromise = null; reject(new Error("script")); };
+      document.head.appendChild(s);
+    });
+    return rzpScriptPromise;
+  }
+  function confirmLabel(method) {
+    return method === "cod" ? "Place Order · Coming Soon" : "Pay Securely 🔒";
+  }
   function confirmPay() {
+    if (payState.method === "cod") { placeOrder("COD", null); return; }
+    payOnline();
+  }
+  // Razorpay online payment: create order on backend → open checkout → verify → record order.
+  function payOnline() {
+    var btn = el("pay-confirm");
+    var restore = btn ? btn.innerHTML : "";
+    function busy(t) { if (btn) { btn.disabled = true; btn.innerHTML = t; } }
+    function unbusy() { if (btn) { btn.disabled = false; btn.innerHTML = restore; } }
+    busy("Starting secure payment…");
+    loadRazorpay().then(function () {
+      return fetch(API_BASE + "/api/razorpay/order", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: payState.total })
+      });
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.d.orderId) throw new Error((res.d && res.d.error) || "Order failed");
+        var d = res.d;
+        var p = payState.payload;
+        var rzp = new window.Razorpay({
+          key: d.keyId, order_id: d.orderId, amount: d.amount, currency: d.currency || "INR",
+          name: "Ambika Flowers 🌸", description: "Fresh Blooms, Delivered with Love", image: "logo.png",
+          prefill: { name: (p.user && p.user.name) || "", contact: (p.user && p.user.phone) || "" },
+          theme: { color: "#d6336c" },
+          handler: function (resp) {
+            busy("Verifying payment…");
+            fetch(API_BASE + "/api/razorpay/verify", {
+              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(resp)
+            }).then(function (r) { return r.json(); }).then(function (v) {
+              if (v && v.ok) { placeOrder("Razorpay", resp); }
+              else { unbusy(); toast("⚠️ Payment verify nahi hua. Paise kate ho to humse contact karo."); }
+            }).catch(function () { unbusy(); toast("⚠️ Verification fail. Retry se pehle humse contact karo."); });
+          },
+          modal: { ondismiss: function () { unbusy(); } }
+        });
+        rzp.on("payment.failed", function () { unbusy(); toast("❌ Payment fail. Dobara try karo."); });
+        rzp.open();
+      })
+      .catch(function (e) {
+        unbusy();
+        toast(/script/.test(String(e && e.message)) ? "⚠️ Razorpay load nahi hua. Internet check karo." : ("⚠️ " + (e && e.message ? e.message : "Payment start nahi hua")));
+      });
+  }
+  // Records a completed order (COD or Razorpay-paid) and shows the success screen.
+  function placeOrder(methodName, rzp) {
     var p = payState.payload;
-    var method = payState.method;
-    var methodName = method === "card" ? "Card" : (method === "cod" ? "COD" : "UPI");
-    var isCod = method === "cod";
-    // UPI payment ke liye Transaction/Reference ID zaroori hai
-    var reference = (el("pay-ref") && el("pay-ref").value.trim()) || "";
-    if (method === "upi" && !reference) {
-      toast("Pehle payment karo, phir Transaction / Reference ID daalo");
-      var rf = el("pay-ref"); if (rf) { rf.style.borderColor = "#d33"; rf.focus(); }
-      return;
-    }
+    var isCod = methodName === "COD";
+    var reference = (rzp && rzp.razorpay_payment_id) || "";
     var oid = "AMB-" + Math.floor(1000 + Math.random() * 9000);
     var now = Date.now();
     var order = {
@@ -1291,6 +1333,7 @@
       items: p.items, product: p.items.length === 1 ? p.items[0].name : (p.items[0].name + " +" + (p.items.length - 1) + " more"),
       amount: payState.total, statusIdx: 0, status: "Order Received",
       reference: reference, method: methodName, paymentStatus: isCod ? "Pending COD" : "Paid",
+      paymentId: (rzp && rzp.razorpay_payment_id) || "", orderRef: (rzp && rzp.razorpay_order_id) || "",
       deliveryDate: (el("pay-date") && el("pay-date").value) || "", slot: (el("pay-slot") && el("pay-slot").value) || "",
       address: (el("pay-addr") && el("pay-addr").value.trim()) || "", gift: (el("pay-gift") && el("pay-gift").value.trim()) || "",
       deliveryFee: payState.deliveryFee || 0, deliveryZone: payState.deliveryZone || "",
@@ -1335,7 +1378,7 @@
   window.AmbikaPay = {
     openCheckout: function (payload, onComplete) {
       injectPay();
-      payState = { method: "upi", payload: payload, onComplete: onComplete, total: 0 };
+      payState = { method: "online", payload: payload, onComplete: onComplete, total: 0 };
       renderPay();
       el("af-pay").classList.add("open"); el("af-pay-ov").classList.add("open");
       // Auto-detect the customer's home location first, then refine the delivery charge

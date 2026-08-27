@@ -7,6 +7,7 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -124,6 +125,48 @@ app.post("/api/customers", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
+
+/* ---------- RAZORPAY PAYMENTS ----------
+   Keys come from Railway environment variables — never hard-coded:
+     key_id      (public key id, rzp_live_xxx / rzp_test_xxx)
+     key_secret  (secret — server-side only, never sent to the browser)
+   (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET also accepted as fallbacks.)
+   Uses Node 18+ built-in fetch + crypto, so no extra npm dependency. */
+const RZP_KEY_ID = process.env.key_id || process.env.RAZORPAY_KEY_ID || "";
+const RZP_KEY_SECRET = process.env.key_secret || process.env.RAZORPAY_KEY_SECRET || "";
+function rzpConfigured() { return RZP_KEY_ID && RZP_KEY_SECRET; }
+
+// Create a Razorpay order. Body: { amount } in rupees. Returns order + public key id.
+app.post("/api/razorpay/order", async (req, res) => {
+  if (!rzpConfigured()) return res.status(500).json({ error: "Payments not configured. Set key_id and key_secret." });
+  const rupees = Number(req.body && req.body.amount);
+  if (!rupees || rupees <= 0) return res.status(400).json({ error: "Invalid amount" });
+  try {
+    const auth = "Basic " + Buffer.from(RZP_KEY_ID + ":" + RZP_KEY_SECRET).toString("base64");
+    const r = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: auth },
+      body: JSON.stringify({ amount: Math.round(rupees * 100), currency: "INR", receipt: "AMB-" + Date.now(), notes: { source: "ambika-flowers-web" } })
+    });
+    const data = await r.json();
+    if (!r.ok) { console.error("Razorpay order error:", data); return res.status(502).json({ error: (data && data.error && data.error.description) || "Razorpay order failed" }); }
+    res.json({ orderId: data.id, amount: data.amount, currency: data.currency, keyId: RZP_KEY_ID });
+  } catch (e) {
+    console.error("Razorpay order exception:", e);
+    res.status(502).json({ error: "Could not reach Razorpay" });
+  }
+});
+
+// Verify the payment signature after checkout. Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+app.post("/api/razorpay/verify", (req, res) => {
+  if (!rzpConfigured()) return res.status(500).json({ ok: false, error: "Payments not configured" });
+  const b = req.body || {};
+  if (!b.razorpay_order_id || !b.razorpay_payment_id || !b.razorpay_signature) return res.status(400).json({ ok: false, error: "Missing fields" });
+  const expected = crypto.createHmac("sha256", RZP_KEY_SECRET).update(b.razorpay_order_id + "|" + b.razorpay_payment_id).digest("hex");
+  const given = String(b.razorpay_signature);
+  const ok = expected.length === given.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(given));
+  res.json({ ok: ok });
+});
 
 /* ---------- static site ---------- */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));
