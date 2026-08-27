@@ -300,7 +300,7 @@
       return '<div class="ak-item">' + img +
         '<div class="ak-item-mid">' +
           '<div class="ak-item-name">' + it.name + '</div>' +
-          '<div class="ak-item-price">Coming Soon</div>' +
+          '<div class="ak-item-price">' + money(it.price) + '</div>' +
           '<div class="ak-item-bottom">' +
             '<div class="ak-qty">' +
               '<button data-dec="' + it.id + '">−</button>' +
@@ -317,9 +317,9 @@
     var delivery = sub >= FREE_ABOVE ? 0 : DELIVERY_FEE;
     var deliveryHtml = delivery === 0 ? '<span class="free">FREE</span>' : money(delivery);
     foot.innerHTML =
-      '<div class="ak-row"><span>Subtotal (' + cartCount() + ' items)</span><span>Coming Soon</span></div>' +
+      '<div class="ak-row"><span>Subtotal (' + cartCount() + ' items)</span><span>' + money(sub) + '</span></div>' +
       '<div class="ak-row"><span>Estimated Delivery</span><span>' + deliveryHtml + '</span></div>' +
-      '<div class="ak-row total"><span>Grand Total</span><span>Coming Soon</span></div>' +
+      '<div class="ak-row total"><span>Grand Total</span><span>' + money(sub + delivery) + '</span></div>' +
       '<button class="ak-checkout" id="ak-checkout">Proceed to Checkout →</button>';
 
     body.querySelectorAll("[data-inc]").forEach(function (b) { b.addEventListener("click", function () { var id = b.getAttribute("data-inc"); setQty(id, findQty(id) + 1); }); });
@@ -768,11 +768,22 @@
   };
 
   /* ---------------- Boot ---------------- */
+  function fixPrices() {
+    document.querySelectorAll(".product-card").forEach(function (card) {
+      if (card.hasAttribute("data-cust")) return; // admin products manage their own price / coming-soon
+      var pe = card.querySelector(".product-price, .price-current");
+      var dp = card.getAttribute("data-price");
+      if (pe && dp && /coming soon/i.test(pe.textContent)) {
+        pe.textContent = "₹" + Number(dp).toLocaleString("en-IN");
+      }
+    });
+  }
   function boot() {
     injectUI();
     wireHeader();
     wireAddButtons();
     updateBadges();
+    fixPrices();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
@@ -950,7 +961,7 @@
     }).join("") + '</div>';
   }
   function orderCardHTML(o) {
-    return '<div class="trk-card"><div class="trk-top"><div class="trk-id">' + esc(o.id) + '<small>' + esc(o.product || "") + ' · ' + esc(o.date || "") + '</small></div><div class="trk-amt">Coming Soon</div></div>' +
+    return '<div class="trk-card"><div class="trk-top"><div class="trk-id">' + esc(o.id) + '<small>' + esc(o.product || "") + ' · ' + esc(o.date || "") + '</small></div><div class="trk-amt">₹' + Number(o.amount || 0).toLocaleString("en-IN") + '</div></div>' +
       '<div class="trk-prod">📍 ' + esc(o.address || "") + (o.slot ? ' · 🕒 ' + esc(o.slot) : "") + '</div>' +
       trackerHTML(o) + '</div>';
   }
@@ -1159,7 +1170,7 @@
         '<input placeholder="CVV" inputmode="numeric" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;"></div></div>' +
         '<div class="pay-secure">🔒 Secured by Razorpay (demo). Cards are not actually charged.</div></div>';
     }
-    return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay <b>Coming Soon</b> in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
+    return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay <b>₹' + ((payState && payState.total) ? payState.total.toLocaleString("en-IN") : "0") + '</b> in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
       '<div class="pay-secure">Your order will be marked <b>Pending COD</b> until delivery.</div></div>';
   }
   /* ---- Distance-based delivery: Sikar ₹100 · outside ₹100 + ₹20/km ---- */
@@ -1373,7 +1384,7 @@
       '<div class="product-info"><span class="product-badge badge-new">New</span>' +
       '<div class="product-name">' + esc(p.title) + '</div>' +
       '<div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">(New)</span></div>' +
-      '<div class="product-price"><span class="price-current">Coming Soon</span></div>' +
+      '<div class="product-price"><span class="price-current">' + (p.comingSoon ? "Coming Soon" : "₹" + Number(dp).toLocaleString("en-IN")) + '</span></div>' +
       '<button class="add-to-cart">🛒 Add to Cart</button></div>';
     card.addEventListener("click", function (e) { if (e.target.closest(".add-to-cart")) return; if (window.AmbikaShop && window.AmbikaShop.openProductPage) window.AmbikaShop.openProductPage(card); });
     return card;
@@ -1386,7 +1397,7 @@
       '<div class="product-img-wrap"><img class="product-img" src="' + esc(img) + '" alt="' + esc(p.title) + '" onerror="this.style.visibility=\'hidden\'"></div>' +
       '<div class="product-info"><div class="product-sub-tag">✨ New Arrival</div>' +
       '<div class="product-name">' + esc(p.title) + '</div>' +
-      '<div class="product-price">Coming Soon</div>' +
+      '<div class="product-price">' + (p.comingSoon ? "Coming Soon" : "₹" + Number(dp).toLocaleString("en-IN")) + '</div>' +
       '<button class="add-to-cart">Add to Cart</button></div>';
     return card;
   }
@@ -1440,10 +1451,11 @@
         var src = (img.getAttribute("src") || "").split("/").pop();
         var p = byImg[src]; if (!p) return;
         var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : p.price;
-        /* Price text always reads "Coming Soon" — data-price still carries the
-           real number underneath for cart/checkout math and price filtering. */
-        var pe = card.querySelector(".product-price"); if (pe) pe.textContent = "Coming Soon";
-        var cur = card.querySelector(".price-current"); if (cur) cur.textContent = "Coming Soon";
+        /* Show "Coming Soon" only if the admin marked this product as such;
+           otherwise show the real price. data-price always carries the number. */
+        var priceText = p.comingSoon ? "Coming Soon" : "₹" + Number(dp).toLocaleString("en-IN");
+        var pe = card.querySelector(".product-price"); if (pe) pe.textContent = priceText;
+        var cur = card.querySelector(".price-current"); if (cur) cur.textContent = priceText;
         card.setAttribute("data-price", dp);
         var ne = card.querySelector(".product-name"); if (ne && p.title) ne.textContent = p.title;
       });

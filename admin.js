@@ -570,7 +570,9 @@
       var ss = stockStatus(p.stock);
       var thumb = p.image ? '<img src="' + esc(p.image) + '" alt="" onerror="this.style.display=\'none\'" style="width:38px;height:38px;border-radius:8px;object-fit:cover;margin-right:9px;vertical-align:middle;">' : '<span style="display:inline-block;width:38px;height:38px;border-radius:8px;background:rgba(120,140,170,.15);margin-right:9px;vertical-align:middle;text-align:center;line-height:38px;">🌸</span>';
       return '<tr><td>' + thumb + '<b>' + esc(p.title) + '</b>' + (p.custom ? ' <span class="pill pink" style="font-size:9px;">NEW</span>' : '') + '<br><small style="color:var(--ink2);">' + p.id + ' · ' + esc(p.tags) + '</small></td>' +
-        '<td><span class="pill blue">' + esc(p.category) + '</span></td><td>Coming Soon</td>' +
+        '<td><span class="pill blue">' + esc(p.category) + '</span></td>' +
+        '<td>' + (p.comingSoon ? '<span class="pill" style="background:#ffe9c7;color:#b06a00;">Coming Soon</span>' : '<b>₹' + Number(p.price || 0).toLocaleString("en-IN") + '</b>') +
+          ' <button class="mini-btn" style="font-size:10px;padding:2px 7px;" onclick="ADMIN.toggleComing(\'' + p.id + '\')">' + (p.comingSoon ? '💲 Set price' : '⏳ Coming soon') + '</button></td>' +
         '<td>' + (p.discount ? p.discount + "%" : "—") + '</td><td><b>' + p.stock + '</b></td><td>' + statusPill(ss.t) + '</td>' +
         '<td style="white-space:nowrap;"><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button> ' +
           '<button class="mini-btn" title="Delete" style="color:#d33;" onclick="ADMIN.delProduct(\'' + p.id + '\')">🗑 Delete</button></td></tr>';
@@ -852,7 +854,8 @@
         title: t, category: $("#pfCat").value, price: price, discount: discount,
         discountPrice: Math.round(price * (1 - discount / 100)),
         stock: +$("#pfStock").value || 0, tags: $("#pfTags").value || "new",
-        image: $("#pfImg").value || ""
+        image: $("#pfImg").value || "",
+        comingSoon: !!($("#pfComing") && $("#pfComing").checked)
       };
       obj.status = stockStatus(obj.stock).t;
       if (editing) { products.forEach(function (p) { if (p.id === editing) { for (var k in obj) p[k] = obj[k]; } }); notify("Product updated ✓"); }
@@ -860,6 +863,14 @@
       saveProducts();
       closeModal();
       if (current === "products") go("products");
+    },
+    toggleComing: function (id) {
+      var openEdit = false;
+      products.forEach(function (p) { if (p.id === id) { p.comingSoon = !p.comingSoon; if (!p.comingSoon && !(+p.price)) openEdit = true; } });
+      saveProducts();
+      if (current === "products") go("products");
+      if (openEdit) ADMIN.editProduct(id);
+      notify("Pricing updated ✓");
     },
     /* ---- Corporate Leads actions ---- */
     leadStatus: function (id, s) { var l = loadLeads(); l.forEach(function (x) { if (x.id === id) x.status = s; }); lsSave(LEADS_KEY, l); notify("Lead " + id + " → " + s); },
@@ -889,9 +900,10 @@
         '<input type="hidden" id="pfImg" value="' + (p ? esc(p.image || "") : "") + '">' +
         '<div class="fld"><label>Category</label><select id="pfCat">' + cats + '</select></div>' +
         '<div class="fld"><label>Tags</label><input id="pfTags" value="' + (p ? p.tags : "new") + '" placeholder="bestseller"></div>' +
-        '<div class="fld"><label>Price (₹)</label><input id="pfPrice" type="number" value="' + (p ? p.price : "") + '"></div>' +
+        '<div class="fld"><label>Price (₹)</label><input id="pfPrice" type="number" ' + (p && p.comingSoon ? 'disabled style="opacity:.5"' : "") + ' value="' + (p ? p.price : "") + '"></div>' +
         '<div class="fld"><label>Discount (%)</label><input id="pfDisc" type="number" value="' + (p ? p.discount : 0) + '"></div>' +
         '<div class="fld"><label>Stock Count</label><input id="pfStock" type="number" value="' + (p ? p.stock : "") + '"></div>' +
+        '<div class="fld full"><label>Pricing status</label><label style="display:flex;align-items:center;gap:9px;font-weight:600;cursor:pointer;"><input type="checkbox" id="pfComing" ' + (p && p.comingSoon ? "checked" : "") + ' onchange="var pf=document.getElementById(\'pfPrice\');if(pf){pf.disabled=this.checked;pf.style.opacity=this.checked?0.5:1;}"> Mark as “Coming Soon” &nbsp;<span style="color:var(--ink2);font-weight:500;">(ON = hide price &amp; show “Coming Soon”; OFF = show the price you set)</span></label></div>' +
       '</div>' +
       '<div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-primary" onclick="ADMIN.saveProduct()">' + (p ? "Save Changes" : "Add Product") + '</button><button class="btn btn-ghost" onclick="ADMIN_close()">Cancel</button></div>');
     wireImageUpload(p ? p.image : "");

@@ -11,6 +11,13 @@ const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Force HTTPS (Railway terminates TLS and sets x-forwarded-proto) -> removes "Not Secure"
+app.use((req, res, next) => {
+  var proto = req.headers["x-forwarded-proto"];
+  if (proto && proto !== "https") return res.redirect(301, "https://" + req.headers.host + req.originalUrl);
+  next();
+});
+
 /* ---------- data store ---------- */
 // Prefer the Railway volume's real mount path so data persists wherever the
 // volume was attached (RAILWAY_VOLUME_MOUNT_PATH is set automatically by Railway).
@@ -108,6 +115,7 @@ app.post("/api/customers", (req, res) => {
 app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
 
 /* ---------- static site ---------- */
+app.get("/favicon.ico", (req, res) => res.sendFile(path.join(__dirname, "logo.png")));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));
 app.use(express.static(__dirname, { extensions: ["html"] }));
 app.use((req, res) => res.sendFile(path.join(__dirname, "index2.html")));
