@@ -1556,3 +1556,42 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
   else wire();
 })();
+
+/* ==========================================================================
+   LIVE PRICES — storefront reads prices from the admin database so any price
+   or "Coming Soon" change in the admin panel shows to customers automatically.
+   Matches static product cards by their data-name to the catalogue title.
+   Runs on every page that includes shop.js; refreshes periodically so open
+   pages update without a manual reload.
+   ========================================================================== */
+(function () {
+  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production.up.railway.app").replace(/\/+$/, "");
+  function applyPrices(list) {
+    var byName = {};
+    list.forEach(function (p) { if (p && p.title) byName[String(p.title).trim().toLowerCase()] = p; });
+    document.querySelectorAll(".product-card").forEach(function (card) {
+      var name = (card.getAttribute("data-name") || "").trim().toLowerCase();
+      var p = byName[name];
+      if (!p) return;
+      var coming = !!p.comingSoon || !(+p.price);
+      var priceEl = card.querySelector(".product-price");
+      if (priceEl) priceEl.textContent = coming ? "Coming Soon" : ("₹" + Number(p.price).toLocaleString("en-IN"));
+      if (!coming) card.setAttribute("data-price", p.price);
+    });
+  }
+  function refresh() {
+    try {
+      fetch(API_BASE + "/api/products")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (Array.isArray(d)) applyPrices(d); })
+        .catch(function () {});
+    } catch (e) {}
+  }
+  function start() {
+    if (!document.querySelector(".product-card")) return; // only on catalogue pages
+    refresh();
+    setInterval(refresh, 30000); // pick up admin changes without a manual reload
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
+})();

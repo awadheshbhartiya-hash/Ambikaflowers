@@ -297,7 +297,13 @@
   }
   var _lastOrderN = -1;
   function syncFromServer(initial) {
-    apiGet("/api/products").then(function (d) { if (Array.isArray(d) && d.length) { products = d; if (current === "products") go("products"); } }).catch(function () {});
+    apiGet("/api/products").then(function (d) {
+      if (!Array.isArray(d) || !d.length) return;
+      if (modalOpen) return;                                  // never disturb an open edit form
+      if (JSON.stringify(d) === JSON.stringify(products)) return; // no change -> no refresh flicker
+      products = d;
+      if (current === "products") go("products");
+    }).catch(function () {});
     apiGet("/api/orders").then(function (d) {
       if (!Array.isArray(d)) return;
       orders = d.map(normalizeOrder);
@@ -571,18 +577,24 @@
       '</tbody></table></div></div>';
   };
 
-  function productRows() {
-    return products.map(function (p) {
-      var ss = stockStatus(p.stock);
-      var thumb = p.image ? '<img src="' + esc(p.image) + '" alt="" onerror="this.style.display=\'none\'" style="width:38px;height:38px;border-radius:8px;object-fit:cover;margin-right:9px;vertical-align:middle;">' : '<span style="display:inline-block;width:38px;height:38px;border-radius:8px;background:rgba(120,140,170,.15);margin-right:9px;vertical-align:middle;text-align:center;line-height:38px;">🌸</span>';
-      return '<tr><td>' + thumb + '<b>' + esc(p.title) + '</b>' + (p.custom ? ' <span class="pill pink" style="font-size:9px;">NEW</span>' : '') + '<br><small style="color:var(--ink2);">' + p.id + ' · ' + esc(p.tags) + '</small></td>' +
-        '<td><span class="pill blue">' + esc(p.category) + '</span></td>' +
-        '<td>' + (p.comingSoon ? '<span class="pill" style="background:#ffe9c7;color:#b06a00;">Coming Soon</span>' : '<b>₹' + Number(p.price || 0).toLocaleString("en-IN") + '</b>') +
-          ' <button class="mini-btn" style="font-size:10px;padding:2px 7px;" onclick="ADMIN.toggleComing(\'' + p.id + '\')">' + (p.comingSoon ? '💲 Set price' : '⏳ Coming soon') + '</button></td>' +
-        '<td>' + (p.discount ? p.discount + "%" : "—") + '</td><td><b>' + p.stock + '</b></td><td>' + statusPill(ss.t) + '</td>' +
-        '<td style="white-space:nowrap;"><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button> ' +
-          '<button class="mini-btn" title="Delete" style="color:#d33;" onclick="ADMIN.delProduct(\'' + p.id + '\')">🗑 Delete</button></td></tr>';
-    }).join("");
+  function productRowHtml(p) {
+    var ss = stockStatus(p.stock);
+    var thumb = p.image ? '<img src="' + esc(p.image) + '" alt="" onerror="this.style.display=\'none\'" style="width:38px;height:38px;border-radius:8px;object-fit:cover;margin-right:9px;vertical-align:middle;">' : '<span style="display:inline-block;width:38px;height:38px;border-radius:8px;background:rgba(120,140,170,.15);margin-right:9px;vertical-align:middle;text-align:center;line-height:38px;">🌸</span>';
+    return '<tr id="prow-' + p.id + '"><td>' + thumb + '<b>' + esc(p.title) + '</b>' + (p.custom ? ' <span class="pill pink" style="font-size:9px;">NEW</span>' : '') + '<br><small style="color:var(--ink2);">' + p.id + ' · ' + esc(p.tags) + '</small></td>' +
+      '<td><span class="pill blue">' + esc(p.category) + '</span></td>' +
+      '<td>' + (p.comingSoon ? '<span class="pill" style="background:#ffe9c7;color:#b06a00;">Coming Soon</span>' : '<b>₹' + Number(p.price || 0).toLocaleString("en-IN") + '</b>') +
+        ' <button class="mini-btn" style="font-size:10px;padding:2px 7px;" onclick="ADMIN.toggleComing(\'' + p.id + '\')">' + (p.comingSoon ? '💲 Set price' : '⏳ Coming soon') + '</button></td>' +
+      '<td>' + (p.discount ? p.discount + "%" : "—") + '</td><td><b>' + p.stock + '</b></td><td>' + statusPill(ss.t) + '</td>' +
+      '<td style="white-space:nowrap;"><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button> ' +
+        '<button class="mini-btn" title="Delete" style="color:#d33;" onclick="ADMIN.delProduct(\'' + p.id + '\')">🗑 Delete</button></td></tr>';
+  }
+  function productRows() { return products.map(productRowHtml).join(""); }
+  // In-place row update — avoids re-rendering the whole panel on every price/stock change.
+  function patchProductRow(id) {
+    var p = products.filter(function (x) { return x.id === id; })[0];
+    var row = document.getElementById("prow-" + id);
+    if (p && row) { row.outerHTML = productRowHtml(p); }
+    else if (current === "products") go("products");
   }
 
   /* ---------- CORPORATE LEADS ---------- */
@@ -784,11 +796,13 @@
   /* ------------------------------------------------------------------ */
   /* MODAL / DRAWER                                                     */
   /* ------------------------------------------------------------------ */
+  var modalOpen = false;
   function openModal(title, html) {
     $("#modalTitle").innerHTML = title; $("#modalBody").innerHTML = html;
     $("#modal").classList.add("open"); $("#ovModal").classList.add("open");
+    modalOpen = true;
   }
-  function closeModal() { $("#modal").classList.remove("open"); $("#ovModal").classList.remove("open"); }
+  function closeModal() { $("#modal").classList.remove("open"); $("#ovModal").classList.remove("open"); modalOpen = false; }
 
   /* ------------------------------------------------------------------ */
   /* PUBLIC ACTIONS (referenced by inline handlers)                     */
@@ -848,7 +862,7 @@
       var i = products.map(function (x) { return x.id; }).indexOf(id);
       if (i > -1) products.splice(i, 1);
       saveProducts();
-      if (current === "products") go("products");
+      if (current === "products") { var row = document.getElementById("prow-" + id); if (row) row.remove(); else go("products"); }
       notify("Product deleted ✓");
     },
     saveProduct: function () {
@@ -864,17 +878,25 @@
         comingSoon: !!($("#pfComing") && $("#pfComing").checked)
       };
       obj.status = stockStatus(obj.stock).t;
+      var isNew = !editing;
       if (editing) { products.forEach(function (p) { if (p.id === editing) { for (var k in obj) p[k] = obj[k]; } }); notify("Product updated ✓"); }
       else { obj.id = "PRD" + rand(400, 999); obj.custom = true; products.unshift(obj); notify("Product added ✓ — live on the store"); }
       saveProducts();
       closeModal();
-      if (current === "products") go("products");
+      if (current === "products") {
+        if (isNew) {
+          var tb = document.getElementById("prodBody");
+          if (tb) tb.insertAdjacentHTML("afterbegin", productRowHtml(obj)); else go("products");
+        } else {
+          patchProductRow(editing);   // update only this row — no full-panel refresh
+        }
+      }
     },
     toggleComing: function (id) {
       var openEdit = false;
       products.forEach(function (p) { if (p.id === id) { p.comingSoon = !p.comingSoon; if (!p.comingSoon && !(+p.price)) openEdit = true; } });
       saveProducts();
-      if (current === "products") go("products");
+      if (current === "products") patchProductRow(id);   // update only this row
       if (openEdit) ADMIN.editProduct(id);
       notify("Pricing updated ✓");
     },
