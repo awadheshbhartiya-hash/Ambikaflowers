@@ -807,6 +807,8 @@
   function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function el(id) { return document.getElementById(id); }
   function esc(s) { return (s || "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  // Backend base URL (same value as the other module). Needed here for Razorpay + orders API.
+  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production.up.railway.app").replace(/\/+$/, "");
 
   /* ---------------- Shared order store (synced with admin) ---------------- */
   var ORDERS_KEY = "ambika_orders";
