@@ -1195,6 +1195,24 @@
     payState.deliveryFee = delivery;
     payState.deliveryZone = del.zone;
     var loc = load("ambika_location");
+    // When "Coming Soon" mode is on (prices not finalised), allow only Cash on Delivery
+    var cs = !!payState.comingSoon;
+    var methodsHtml;
+    if (cs) {
+      methodsHtml =
+        '<div class="pay-methods" id="pay-methods">' +
+          '<div class="pay-m sel" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
+        '</div>' +
+        '<div style="background:#fff0f6;border:1px dashed #e84393;border-radius:12px;padding:11px 13px;margin:2px 0 4px;font-size:13px;color:#7a1f4e;line-height:1.5;">🏷️ Iss product ki pricing abhi finalise ho rahi hai. Abhi <b>Cash on Delivery</b> se order karein — hum aapko call karke final price &amp; details confirm kar denge. 🌸</div>';
+    } else {
+      methodsHtml =
+        '<div class="pay-methods" id="pay-methods">' +
+          '<div class="pay-m' + (payState.method === "upi" ? " sel" : "") + '" data-m="upi"><span class="pe">📲</span>UPI / QR</div>' +
+          '<div class="pay-m' + (payState.method === "card" ? " sel" : "") + '" data-m="card"><span class="pe">💳</span>Card / Net Banking</div>' +
+          '<div class="pay-m' + (payState.method === "cod" ? " sel" : "") + '" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
+        '</div>';
+    }
+    var confirmLabel = payState.method === "cod" ? ("Place Order · ₹" + total.toLocaleString("en-IN")) : ("Confirm &amp; Pay ₹" + total.toLocaleString("en-IN"));
     var body =
       '<div class="pay-sum">' +
         p.items.map(function (it) { return '<div class="pl"><span>' + esc(it.name) + ' × ' + it.qty + '</span><span>₹' + (it.price * it.qty).toLocaleString("en-IN") + '</span></div>'; }).join("") +
@@ -1210,13 +1228,9 @@
         '<div class="pay-fld full"><label>Gift Card Message (optional)</label><textarea id="pay-gift" rows="2" placeholder="Write a sweet note…"></textarea></div>' +
         '<div class="pay-fld full"><label>Customization / Special Request (optional)</label><textarea id="pay-custom" rows="2" placeholder="Koi customization chahiye? Jaise colour, flower type, packing, ya koi khaas message — yahan likho…"></textarea></div>' +
       '</div>' +
-      '<div class="pay-methods" id="pay-methods">' +
-        '<div class="pay-m sel" data-m="upi"><span class="pe">📲</span>UPI / QR</div>' +
-        '<div class="pay-m" data-m="card"><span class="pe">💳</span>Card / Net Banking</div>' +
-        '<div class="pay-m" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
-      '</div>' +
+      methodsHtml +
       '<div id="pay-panel">' + methodPanel(payState.method, total) + '</div>' +
-      '<button class="pay-confirm" id="pay-confirm">Confirm &amp; Pay ₹' + total.toLocaleString("en-IN") + '</button>' +
+      '<button class="pay-confirm" id="pay-confirm">' + confirmLabel + '</button>' +
       '<div class="pay-secure">🔒 100% Secure Payments · Razorpay / UPI</div>';
     el("af-pay-body").innerHTML = body;
 
@@ -1343,11 +1357,15 @@
   window.AmbikaPay = {
     openCheckout: function (payload, onComplete) {
       injectPay();
-      payState = { method: "upi", payload: payload, onComplete: onComplete, total: 0 };
+      payState = { method: "upi", payload: payload, onComplete: onComplete, total: 0, comingSoon: false };
       renderPay();
       el("af-pay").classList.add("open"); el("af-pay-ov").classList.add("open");
       // Auto-detect the customer's home location first, then refine the delivery charge
       if (detectedKm == null) setTimeout(function () { detectDeliveryLocation(true); }, 400);
+      // If "Coming Soon" mode is on, restrict checkout to Cash on Delivery only
+      fetch("/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).then(function (s) {
+        if (s && s.comingSoon) { payState.comingSoon = true; payState.method = "cod"; renderPay(); }
+      }).catch(function () {});
     }
   };
 
@@ -1455,9 +1473,27 @@
     els.forEach(function (e, i) { e.classList.add("ak-reveal"); e.style.transitionDelay = ((i % 6) * 0.04) + "s"; io.observe(e); });
   }
 
-  /* ---- Live prices from the shared database (admin edits reflect here) ---- */
+  /* ---- Live prices from the shared database (admin edits reflect here) ----
+     When the admin turns ON "Coming Soon" mode (global setting), every price on
+     the storefront is replaced with "Coming Soon" (works on all card layouts,
+     mobile + PC). When OFF, live prices from the database are shown as usual. */
+  function applyComingSoonSweep() {
+    // Replace every visible price with "Coming Soon"
+    [".product-price", ".price-current", ".bs-card-price", ".verm-price"].forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (el) { el.textContent = "Coming Soon"; });
+    });
+    // Hide struck-through MRP + discount badges (they look odd next to "Coming Soon")
+    [".price-original", ".price-off"].forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (el) { el.style.display = "none"; });
+    });
+    document.querySelectorAll(".product-card").forEach(function (card) { card.setAttribute("data-price", 0); });
+  }
   function syncStorefrontPrices() {
-    fetch("/api/products").then(function (r) { return r.ok ? r.json() : []; }).then(function (list) {
+    var pSettings = fetch("/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
+    var pProducts = fetch("/api/products").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
+    Promise.all([pSettings, pProducts]).then(function (res) {
+      var settings = res[0] || {}, list = res[1] || [];
+      if (settings.comingSoon) { applyComingSoonSweep(); return; }   // Coming Soon mode ON
       if (!Array.isArray(list) || !list.length) return;
       var byName = {};
       list.forEach(function (p) { if (p && p.title) byName[String(p.title).trim().toLowerCase()] = p; });

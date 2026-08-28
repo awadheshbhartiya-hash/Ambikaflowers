@@ -306,6 +306,7 @@
       if ((initial || grew) && /dashboard|orders|analytics|payments|customers/.test(current)) go(current);
     }).catch(function () {});
     apiGet("/api/customers").then(function (d) { if (Array.isArray(d)) { customers = customersFromServer(d); if (current === "customers") go("customers"); } }).catch(function () {});
+    apiGet("/api/settings").then(function (d) { if (d && typeof d === "object") { var was = siteSettings.comingSoon; siteSettings = d; if (current === "dashboard" && was !== !!d.comingSoon) go("dashboard"); } }).catch(function () {});
   }
   function saveProducts() {
     try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {}
@@ -316,6 +317,8 @@
     if (existing && existing.length) return existing;
     return DEFAULT_CATALOG.slice(); // show the storefront catalogue by default
   })();
+  // Global storefront settings (e.g. Coming Soon price mode), shared via the server
+  var siteSettings = { comingSoon: false };
   function stockStatus(s) { return s === 0 ? { t: "Out of Stock", c: "red" } : s <= 10 ? { t: "Low Stock", c: "amber" } : { t: "In Stock", c: "green" }; }
 
   /* ---- Shared live stores (written by the storefront tracker) ---- */
@@ -398,11 +401,20 @@
   var pages = {};
 
   /* ---------- DASHBOARD ---------- */
+  function comingSoonBanner() {
+    var on = !!siteSettings.comingSoon;
+    return '<div class="card" style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-left:5px solid ' + (on ? '#e84393' : '#22c55e') + ';">' +
+      '<div><div style="font-weight:800;font-size:16px;color:var(--ink);">🏷️ Coming Soon Mode — ' + (on ? '<span style="color:#e84393;">ON</span>' : '<span style="color:#22c55e;">OFF</span>') + '</div>' +
+      '<div class="sub" style="margin:4px 0 0;">' + (on ? 'Website pe har product ke price ki jagah "Coming Soon" dikh raha hai (mobile + PC).' : 'Website pe normal live prices dikh rahe hain.') + '</div></div>' +
+      '<button class="btn btn-primary" onclick="ADMIN.toggleComingSoon()">' + (on ? '✅ Turn OFF — Show Prices' : '🏷️ Turn ON — Coming Soon') + '</button>' +
+      '</div>';
+  }
   pages.dashboard = function () {
     var st = computeStats();
     return '' +
       '<div class="page-head"><div><h1>Dashboard</h1><p>Welcome back, Keshav — here’s today at Ambika Flowers 🌸</p></div>' +
       '<button class="btn btn-primary" onclick="ADMIN.go(\'products\')">＋ Add Product</button></div>' +
+      comingSoonBanner() +
       '<div class="grid g-4">' +
         metric("pink", "💰", "Total Revenue", inr(st.revenue), "up", "live from orders") +
         metric("green", "🛒", "Today’s Sales", inr(st.todaySales), "up", "orders placed today") +
@@ -806,6 +818,16 @@
   /* ------------------------------------------------------------------ */
   window.ADMIN = {
     go: go,
+    toggleComingSoon: function () {
+      var next = !siteSettings.comingSoon;
+      apiSend("PUT", "/api/settings", { comingSoon: next })
+        .then(function (d) { siteSettings = (d && typeof d === "object") ? d : { comingSoon: next }; })
+        .catch(function () { siteSettings.comingSoon = next; })
+        .then(function () {
+          notify(siteSettings.comingSoon ? "🏷️ Coming Soon mode ON — website pe prices chhup gaye" : "✅ Coming Soon mode OFF — prices wapas live");
+          go("dashboard");
+        });
+    },
     orderFilter: function (s) { orderFilter = s; go("orders"); },
     setStatus: function (id, s) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) { x.status = s; x.statusIdx = (s === "Cancelled") ? "Cancelled" : FLORAL.indexOf(s); } }); lsSave("ambika_orders", o); notify("Order " + id + " → " + s + " (synced to live tracker)"); },
     setTrack: function (id, t) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) x.track = t; }); lsSave("ambika_orders", o); notify("Tracking saved for " + id); },

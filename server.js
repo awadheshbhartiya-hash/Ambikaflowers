@@ -55,6 +55,8 @@ let store = readStore();
 if (!store || typeof store !== "object") store = {};
 if (!Array.isArray(store.orders)) store.orders = [];
 if (!Array.isArray(store.customers)) store.customers = [];
+if (!store.settings || typeof store.settings !== "object") store.settings = {};
+if (typeof store.settings.comingSoon !== "boolean") store.settings.comingSoon = false;
 if (!Array.isArray(store.products) || store.products.length === 0 || store.catalogVersion !== CATALOG_VERSION) {
   store.products = loadSeed();          // rebuild catalogue from the new seed
   store.catalogVersion = CATALOG_VERSION;
@@ -115,6 +117,14 @@ app.post("/api/customers", (req, res) => {
   if (!c.id) c.id = rid("CUST");
   if (!c.createdAt) c.createdAt = Date.now();
   store.customers.unshift(c); save(); res.json(c);
+});
+
+// SETTINGS (global storefront flags — e.g. "Coming Soon" price mode)
+app.get("/api/settings", (req, res) => res.json(store.settings || {}));
+app.put("/api/settings", (req, res) => {
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) return res.status(400).json({ error: "expected object" });
+  store.settings = Object.assign({}, store.settings, req.body);
+  save(); res.json(store.settings);
 });
 
 // RAZORPAY
