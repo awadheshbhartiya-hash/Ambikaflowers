@@ -1208,6 +1208,7 @@
         '<div class="pay-fld"><label>Time Slot</label><select id="pay-slot"><option>9 AM – 12 PM</option><option>12 PM – 3 PM</option><option selected>3 PM – 6 PM</option><option>6 PM – 9 PM</option></select></div>' +
         '<div class="pay-fld full"><label>Delivery Address</label><input id="pay-addr" placeholder="Full delivery address" value="' + (loc && loc.label ? esc(loc.label) : "") + '"></div>' +
         '<div class="pay-fld full"><label>Gift Card Message (optional)</label><textarea id="pay-gift" rows="2" placeholder="Write a sweet note…"></textarea></div>' +
+        '<div class="pay-fld full"><label>Customization / Special Request (optional)</label><textarea id="pay-custom" rows="2" placeholder="Koi customization chahiye? Jaise colour, flower type, packing, ya koi khaas message — yahan likho…"></textarea></div>' +
       '</div>' +
       '<div class="pay-methods" id="pay-methods">' +
         '<div class="pay-m sel" data-m="upi"><span class="pe">📲</span>UPI / QR</div>' +
@@ -1299,6 +1300,7 @@
       reference: reference, method: methodName, paymentStatus: paymentStatus,
       deliveryDate: (el("pay-date") && el("pay-date").value) || "", slot: (el("pay-slot") && el("pay-slot").value) || "",
       address: (el("pay-addr") && el("pay-addr").value.trim()) || "", gift: (el("pay-gift") && el("pay-gift").value.trim()) || "",
+      customization: (el("pay-custom") && el("pay-custom").value.trim()) || "",
       deliveryFee: payState.deliveryFee || 0, deliveryZone: payState.deliveryZone || "",
       placedTs: now, date: new Date(now).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }), track: ""
     };

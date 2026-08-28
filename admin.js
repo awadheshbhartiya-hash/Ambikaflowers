@@ -297,6 +297,12 @@
       orders = d.map(normalizeOrder);
       var grew = orders.length > _lastOrderN && _lastOrderN >= 0;
       _lastOrderN = orders.length;
+      if (grew) {
+        try { playOrderSound(); } catch (e) {}
+        var latest = orders[0];
+        notify("🎉 New order received!" + (latest ? " " + esc(latest.id || "") + " · " + inr(latest.amount) : ""));
+        if (typeof toast === "function") toast("🔔 New order received!");
+      }
       if ((initial || grew) && /dashboard|orders|analytics|payments|customers/.test(current)) go(current);
     }).catch(function () {});
     apiGet("/api/customers").then(function (d) { if (Array.isArray(d)) { customers = customersFromServer(d); if (current === "customers") go("customers"); } }).catch(function () {});
@@ -828,7 +834,8 @@
           kv("Placed On", placed) + kv("Tracking #", o.track || "—") +
         '</div>' +
         (o.address ? '<div class="section-title">📍 Delivery Address</div><div class="addr-box">' + esc(o.address) + '</div>' : '') +
-        (o.greeting ? '<div class="section-title">🎁 Gifting Details</div><div class="addr-box"><b>Greeting Card Message</b>' + esc(o.greeting) + '</div>' : '') +
+        (o.customization ? '<div class="section-title">✏️ Customization / Special Request</div><div class="addr-box" style="border-left:4px solid #e84393;background:#fff0f6;color:#7a1f4e;font-weight:600;">' + esc(o.customization) + '</div>' : '') +
+        (o.gift ? '<div class="section-title">🎁 Gift Card Message</div><div class="addr-box">' + esc(o.gift) + '</div>' : '') +
         '<div class="grid g-2" style="gap:10px;">' + kv("Delivery Date", o.deliveryDate || "—") + kv("Preferred Slot", o.slot || "—") + '</div>');
     },
     addProduct: function () { productForm(null); },
