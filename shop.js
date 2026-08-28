@@ -1478,22 +1478,29 @@
      the storefront is replaced with "Coming Soon" (works on all card layouts,
      mobile + PC). When OFF, live prices from the database are shown as usual. */
   function applyComingSoonSweep() {
-    // Replace every visible price with "Coming Soon"
+    // Replace every visible price with "Coming Soon" (all card layouts, mobile + PC)
     [".product-price", ".price-current", ".bs-card-price", ".verm-price"].forEach(function (sel) {
       document.querySelectorAll(sel).forEach(function (el) { el.textContent = "Coming Soon"; });
     });
     // Hide struck-through MRP + discount badges (they look odd next to "Coming Soon")
-    [".price-original", ".price-off"].forEach(function (sel) {
+    [".price-original", ".price-off", ".bs-card-old", ".bs-card-off"].forEach(function (sel) {
       document.querySelectorAll(sel).forEach(function (el) { el.style.display = "none"; });
     });
     document.querySelectorAll(".product-card").forEach(function (card) { card.setAttribute("data-price", 0); });
+  }
+  // Run the sweep now and a few more times, so late-built sliders (bestsellers,
+  // vermala) also get caught no matter when they render.
+  function applyComingSoonRepeat() {
+    applyComingSoonSweep();
+    setTimeout(applyComingSoonSweep, 500);
+    setTimeout(applyComingSoonSweep, 1500);
   }
   function syncStorefrontPrices() {
     var pSettings = fetch("/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
     var pProducts = fetch("/api/products").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
     Promise.all([pSettings, pProducts]).then(function (res) {
       var settings = res[0] || {}, list = res[1] || [];
-      if (settings.comingSoon) { applyComingSoonSweep(); return; }   // Coming Soon mode ON
+      if (settings.comingSoon) { applyComingSoonRepeat(); return; }   // Coming Soon mode ON
       if (!Array.isArray(list) || !list.length) return;
       var byName = {};
       list.forEach(function (p) { if (p && p.title) byName[String(p.title).trim().toLowerCase()] = p; });
