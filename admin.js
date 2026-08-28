@@ -527,6 +527,18 @@
   };
 
   /* ---------- ORDERS ---------- */
+  // Always show the CURRENT catalogue photo for a product (matched by name),
+  // so old orders don't keep showing outdated images. Falls back to whatever
+  // image was stored on the order if no catalogue match is found.
+  function prodImgByName(name, fallback) {
+    if (!name) return fallback || "";
+    var key = String(name).replace(/\s*\+\d+\s*more$/i, "").trim().toLowerCase();
+    for (var i = 0; i < products.length; i++) {
+      var t = (products[i].title || products[i].name || "").trim().toLowerCase();
+      if (t && t === key) return products[i].image || products[i].img || fallback || "";
+    }
+    return fallback || "";
+  }
   var orderFilter = "All";
   pages.orders = function () {
     var live = freshOrders();
@@ -544,7 +556,8 @@
           var cur = o.status || deriveStatus(o);
           var opts = ORDER_STATUSES.map(function (s) { return '<option ' + (s === cur ? "selected" : "") + '>' + s + '</option>'; }).join("");
           var pName = o.product || (o.items && o.items[0] && o.items[0].name) || "—";
-          var pImg = (o.items && o.items[0] && o.items[0].img) || o.image || "";
+          var firstItemName = (o.items && o.items[0] && o.items[0].name) || o.product;
+          var pImg = prodImgByName(firstItemName, (o.items && o.items[0] && o.items[0].img) || o.image || "");
           var pThumb = pImg ? '<img src="' + esc(pImg) + '" alt="" onerror="this.style.display=\'none\'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin-right:9px;vertical-align:middle;background:#f0f0f0;box-shadow:0 1px 4px rgba(0,0,0,.12);">' : '';
           return '<tr><td><b>' + esc(o.id) + '</b></td><td>' + esc(o.customer || "Guest") + '</td><td style="white-space:nowrap;">' + pThumb + '<span style="vertical-align:middle;">' + esc(pName) + '</span></td><td><b>' + inr(o.amount) + '</b></td>' +
             '<td>' + esc(o.deliveryDate || "—") + '<br><small style="color:var(--ink2);">' + esc(o.slot || "") + '</small></td>' +
@@ -820,7 +833,8 @@
       var items = (o.items && o.items.length) ? o.items : [{ name: o.product, price: o.amount, img: o.image, qty: 1 }];
       var gallery = '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">' +
         items.map(function (it) {
-          var img = it.img ? '<img src="' + esc(it.img) + '" alt="" onerror="this.style.visibility=\'hidden\'" style="width:56px;height:56px;border-radius:10px;object-fit:cover;background:#f0f0f0;box-shadow:0 2px 6px rgba(0,0,0,.12);">' : '<div style="width:56px;height:56px;border-radius:10px;background:#f0f0f0;"></div>';
+          var itImg = prodImgByName(it.name, it.img);
+          var img = itImg ? '<img src="' + esc(itImg) + '" alt="" onerror="this.style.visibility=\'hidden\'" style="width:56px;height:56px;border-radius:10px;object-fit:cover;background:#f0f0f0;box-shadow:0 2px 6px rgba(0,0,0,.12);">' : '<div style="width:56px;height:56px;border-radius:10px;background:#f0f0f0;"></div>';
           return '<div style="display:flex;align-items:center;gap:12px;background:var(--bg2,#f7f8fb);border-radius:12px;padding:10px 12px;">' + img +
             '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;color:var(--ink);">' + esc(it.name || "Product") + '</div>' +
             '<div style="font-size:12px;color:var(--ink2);">' + inr(it.price) + (it.qty ? ' × ' + it.qty : '') + '</div></div></div>';
