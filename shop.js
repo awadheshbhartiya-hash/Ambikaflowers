@@ -215,6 +215,8 @@
     document.getElementById("ak-resend").addEventListener("click", function (e) { e.preventDefault(); sendOtp(); });
     document.getElementById("ak-otp-change").addEventListener("click", function (e) { e.preventDefault(); showLoginPane("otp"); });
     wireOtpCells();
+    // OTP login needs paid SMS, so we hide it — customers log in with a password
+    var _toOtp = document.getElementById("ak-to-otp"); if (_toOtp && _toOtp.parentNode) _toOtp.parentNode.style.display = "none";
     document.addEventListener("click", function (e) { var b = e.target.closest(".ak-ripple"); if (b) spawnRipple(b, e); });
 
     /* account menu actions */
@@ -328,6 +330,8 @@
   function checkout() {
     if (window.AmbikaTrack) try { window.AmbikaTrack.logActivity("cart", "💳", window.AmbikaTrack.visitorName() + " started checkout (₹" + subtotal() + ")"); } catch (e) {}
     if (cart.length === 0) { toast("Your cart is empty"); return; }
+    // Login is required before ordering — so we capture the customer + address
+    if (!user) { toast("Order karne ke liye pehle login / signup karein 🌸", false); closeCart(); openAuth("login"); return; }
     if (window.AmbikaPay && window.AmbikaPay.openCheckout) {
       var payload = {
         items: cart.map(function (i) { return { name: i.name, price: i.price, img: i.img, qty: i.qty }; }),
@@ -356,12 +360,12 @@
     if (pill) pill.style.transform = login ? "translateX(0)" : "translateX(100%)";
     var lf = document.getElementById("ak-login-form");
     var sf = document.getElementById("ak-signup-form");
-    if (login) { sf.style.display = "none"; lf.style.display = ""; showLoginPane("otp"); }
+    if (login) { sf.style.display = "none"; lf.style.display = ""; showLoginPane("pw"); }
     else { lf.style.display = "none"; sf.style.display = ""; }
     var shown = login ? lf : sf;
     shown.classList.remove("ak-fade"); void shown.offsetWidth; shown.classList.add("ak-fade");
     document.getElementById("ak-auth-title").textContent = login ? "Welcome Back" : "Create Account";
-    document.getElementById("ak-auth-sub").textContent = login ? "Login with OTP or password 🌸" : "Join the Ambika Flowers family 🌷";
+    document.getElementById("ak-auth-sub").textContent = login ? "Apne password se login karein 🌸" : "Join the Ambika Flowers family 🌷";
   }
 
   /* ---- Login sub-panes (OTP / code / password) ---- */
@@ -545,10 +549,18 @@
     setErr("l-id", !idOk); if (!idOk) ok = false;
     setErr("l-pw", pw.length < 6); if (pw.length < 6) ok = false;
     if (!ok) return;
-    var known = load(USER_KEY);
-    var name = known && known.email === id ? known.name : (isEmail(id) ? id.split("@")[0] : "Guest");
-    finishAuth({ name: name, email: isEmail(id) ? id : (known ? known.email : ""), phone: isPhone(id) ? id : (known ? known.phone : ""), role: "customer" });
-    toast("Welcome back, " + firstName() + "!", true);
+    // Real login — verify the password against the database
+    var sbtn = document.querySelector("#ak-pane-pw .ak-submit");
+    if (sbtn) { sbtn.disabled = true; sbtn.style.opacity = ".7"; }
+    fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id, password: pw }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; }
+        if (!res.ok) { setErr("l-pw", true); toast((res.d && res.d.error) || "Login nahi hua"); return; }
+        finishAuth(Object.assign({ role: "customer" }, res.d.user), res.d.token);
+        toast("Welcome back, " + firstName() + "! 🌸", true);
+      })
+      .catch(function () { if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; } toast("Server tak nahi pahuncha, dobara try karein"); });
   }
 
   /* ---- Admin authentication + redirect ---- */
@@ -575,20 +587,29 @@
     setErr("s-phone", !isPhone(phone)); if (!isPhone(phone)) ok = false;
     setErr("s-pw", pw.length < 6); if (pw.length < 6) ok = false;
     if (!ok) return;
-    // Require OTP verification before creating the account (OTP is shown, then auto-filled)
-    pendingSignup = { name: name, email: email, phone: phone };
-    startOtpFlow(phone, true, "Verify Your Number", "Confirm the OTP to create your account 🌸");
+    // Real signup — create the account in the database (password is hashed server-side)
+    var btn = document.querySelector("#ak-signup-form .ak-submit");
+    if (btn) { btn.disabled = true; btn.style.opacity = ".7"; }
+    fetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name, email: email, phone: phone, password: pw }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (btn) { btn.disabled = false; btn.style.opacity = ""; }
+        if (!res.ok) { toast((res.d && res.d.error) || "Signup nahi hua, dobara try karein"); return; }
+        finishAuth(Object.assign({ role: "customer" }, res.d.user), res.d.token);
+        toast("Account ban gaya — welcome, " + firstName() + "! 🌸", true);
+      })
+      .catch(function () { if (btn) { btn.disabled = false; btn.style.opacity = ""; } toast("Server tak nahi pahuncha, dobara try karein"); });
   }
 
-  function finishAuth(u) {
+  function finishAuth(u, token) {
     u = u || {};
-    user = { name: u.name || "Guest", email: u.email || "", phone: u.phone || "", role: u.role || "customer" };
+    user = { id: u.id || "", name: u.name || "Guest", email: u.email || "", phone: u.phone || "", address: u.address || "", role: u.role || "customer" };
     save(USER_KEY, user);
-    try { localStorage.setItem("ambika_isLoggedIn", "true"); localStorage.setItem("ambika_role", user.role); } catch (e) {}
-    // Register the shopper in the shared database so they show up in the admin (Customers)
-    if (user.role === "customer" && (user.phone || user.email)) {
-      try { fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: user.name, email: user.email, phone: user.phone }) }).catch(function () {}); } catch (e) {}
-    }
+    try {
+      localStorage.setItem("ambika_isLoggedIn", "true");
+      localStorage.setItem("ambika_role", user.role);
+      if (token) localStorage.setItem("ambika_token", token);
+    } catch (e) {}
     clearInterval(resendCd);
     otpCode = null;
     closeAuth();
@@ -1195,6 +1216,8 @@
     payState.deliveryFee = delivery;
     payState.deliveryZone = del.zone;
     var loc = load("ambika_location");
+    var payUser = load("ambika_user") || {};
+    var prefillAddr = payUser.address || (loc && loc.label ? loc.label : "");
     // When "Coming Soon" mode is on (prices not finalised), allow only Cash on Delivery
     var cs = !!payState.comingSoon;
     var methodsHtml;
@@ -1224,7 +1247,7 @@
       '<div class="pay-flds">' +
         '<div class="pay-fld"><label>Delivery Date</label><input type="date" id="pay-date"></div>' +
         '<div class="pay-fld"><label>Time Slot</label><select id="pay-slot"><option>9 AM – 12 PM</option><option>12 PM – 3 PM</option><option selected>3 PM – 6 PM</option><option>6 PM – 9 PM</option></select></div>' +
-        '<div class="pay-fld full"><label>Delivery Address</label><input id="pay-addr" placeholder="Full delivery address" value="' + (loc && loc.label ? esc(loc.label) : "") + '"></div>' +
+        '<div class="pay-fld full"><label>Delivery Address</label><input id="pay-addr" placeholder="Full delivery address" value="' + esc(prefillAddr) + '"></div>' +
         '<div class="pay-fld full"><label>Gift Card Message (optional)</label><textarea id="pay-gift" rows="2" placeholder="Write a sweet note…"></textarea></div>' +
         '<div class="pay-fld full"><label>Customization / Special Request (optional)</label><textarea id="pay-custom" rows="2" placeholder="Koi customization chahiye? Jaise colour, flower type, packing, ya koi khaas message — yahan likho…"></textarea></div>' +
       '</div>' +
@@ -1322,6 +1345,14 @@
     orders.unshift(order); save(ORDERS_KEY, orders);
     // Save the order to the shared database so it shows in the admin panel (any device)
     try { fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) }).catch(function () {}); } catch (e) {}
+    // Save this delivery address to the customer's profile (so it's pre-filled next time)
+    try {
+      var ou = p.user || {};
+      if ((ou.email || ou.phone) && order.address) {
+        fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ou.id, name: ou.name, email: ou.email, phone: ou.phone, address: order.address }) }).catch(function () {});
+        var uu = load("ambika_user") || {}; uu.address = order.address; save("ambika_user", uu);
+      }
+    } catch (e) {}
     // reflect in tracking + clear cart
     try { logActivity("order", "✅", ((p.user && p.user.name) ? p.user.name.split(" ")[0] : "Guest") + " placed order " + oid + " (₹" + payState.total + ", " + methodName + ")"); } catch (e) {}
     try { cartSnapshot([]); } catch (e) {}
