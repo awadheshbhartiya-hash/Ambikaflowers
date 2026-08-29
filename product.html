@@ -123,7 +123,7 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
     <div class="pd-tag" id="pd-tag">Ambika Flowers</div>
     <h1 class="pd-name" id="pd-name">Product</h1>
     <div class="pd-rating">★★★★★ <span>(Loved by customers)</span></div>
-    <div class="pd-price" id="pd-price">₹0 <small>Free greeting card 🌸</small></div>
+    <div class="pd-price" id="pd-price">Coming Soon <small>Free greeting card 🌸</small></div>
     <p class="pd-desc" id="pd-desc"></p>
 
     <div class="pd-qty">
@@ -169,7 +169,22 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
   document.getElementById("bc-name").textContent = name;
   document.getElementById("bc-cat").textContent = tag || "Products";
   document.getElementById("pd-tag").textContent = tag || "Ambika Flowers";
-  document.getElementById("pd-price").innerHTML = "₹" + price.toLocaleString("en-IN") + ' <small>Free greeting card 🌸</small>';
+  var pdPriceEl = document.getElementById("pd-price");
+  var giftNote = ' <small>Free greeting card 🌸</small>';
+  function showPd(txt){ pdPriceEl.innerHTML = txt + giftNote; }
+  showPd("Coming Soon");
+  // Respect the global "Coming Soon" toggle; otherwise show the live price from the database
+  Promise.all([
+    fetch("/api/settings").then(function(r){return r.ok?r.json():{};}).catch(function(){return {};}),
+    fetch("/api/products").then(function(r){return r.ok?r.json():[];}).catch(function(){return [];})
+  ]).then(function(res){
+    var settings = res[0]||{}, list = res[1]||[];
+    if(settings.comingSoon){ showPd("Coming Soon"); return; }
+    var match = null, key = String(name).trim().toLowerCase();
+    if(Array.isArray(list)){ for(var i=0;i<list.length;i++){ var t=(list[i].title||list[i].name||"").trim().toLowerCase(); if(t===key){ match=list[i]; break; } } }
+    var pr = match ? (match.discount ? Math.round(match.price*(1-match.discount/100)) : match.price) : price;
+    showPd(pr > 0 ? "₹" + Number(pr).toLocaleString("en-IN") : "Coming Soon");
+  });
   var imgEl = document.getElementById("pd-img");
   imgEl.onerror = function(){ this.style.visibility = "hidden"; };
   imgEl.alt = name;

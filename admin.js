@@ -96,13 +96,229 @@
     return []; // start empty — real orders arrive from the storefront checkout
   })();
 
-  // Products — shared with the storefront via localStorage("ambika_products"); starts empty
-  function saveProducts() { try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {} }
+  // Products — shared with the storefront via localStorage("ambika_products").
+  // The storefront homepage already shows these 6 as hardcoded cards; we mirror them
+  // here so the admin catalogue is never empty. They are display defaults only — not
+  // written to localStorage and not marked custom, so the storefront never duplicates
+  // them. Once the shopkeeper edits/adds a product, the whole list is saved.
+  var DEFAULT_CATALOG = [
+    { id: "P001", title: "Grand Rose Bouquet", category: "Bouquet", price: 699, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.15 PM (1).jpeg", custom: false },
+    { id: "P002", title: "Pink Rose Bouquet", category: "Bouquet", price: 549, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.15 PM (2).jpeg", custom: false },
+    { id: "P003", title: "Classic Rose Bouquet", category: "Bouquet", price: 399, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.20 PM.jpeg", custom: false },
+    { id: "P004", title: "Red Rose Special", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.23 PM (1).jpeg", custom: false },
+    { id: "P005", title: "Wrapped Rose Bouquet", category: "Bouquet", price: 449, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.25 PM (2).jpeg", custom: false },
+    { id: "P006", title: "Premium Rose Arrangement", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.26 PM.jpeg", custom: false },
+    { id: "P007", title: "Luxury Rose Bouquet", category: "Bouquet", price: 649, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.26 PM (1).jpeg", custom: false },
+    { id: "P008", title: "Designer Rose Bouquet", category: "Bouquet", price: 799, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.45 PM (1).jpeg", custom: false },
+    { id: "P009", title: "Signature Rose Bouquet", category: "Bouquet", price: 899, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.36.54 PM (1).jpeg", custom: false },
+    { id: "P010", title: "Pink Rose Hand Tied", category: "Bouquet", price: 749, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.41.37 PM.jpeg", custom: false },
+    { id: "P011", title: "Fresh Rose Bunch", category: "Bouquet", price: 549, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.41.41 PM.jpeg", custom: false },
+    { id: "P012", title: "Rose Bouquet Classic", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.42.23 PM.jpeg", custom: false },
+    { id: "P013", title: "Pink Rose Bouquet", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.42.35 PM (1).jpeg", custom: false },
+    { id: "P014", title: "White Rose Bouquet", category: "Bouquet", price: 649, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.42.39 PM (2).jpeg", custom: false },
+    { id: "P015", title: "Rose & Ferrero Rocher Bouquet", category: "Bouquet", price: 999, discount: 0, stock: 25, tags: "rose", image: "products/WhatsApp Image 2026-08-20 at 12.42.40 PM (1).jpeg", custom: false },
+    { id: "P016", title: "Mixed Flower Bouquet", category: "Bouquet", price: 549, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.16 PM.jpeg", custom: false },
+    { id: "P017", title: "Colorful Mix Bouquet", category: "Bouquet", price: 649, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.16 PM (1).jpeg", custom: false },
+    { id: "P018", title: "Spring Mix Bouquet", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.40 PM (1).jpeg", custom: false },
+    { id: "P019", title: "Seasonal Mix Bouquet", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.44 PM (2).jpeg", custom: false },
+    { id: "P020", title: "Wildflower Bouquet", category: "Bouquet", price: 549, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.48 PM.jpeg", custom: false },
+    { id: "P021", title: "Pastel Mix Bouquet", category: "Bouquet", price: 699, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.48 PM (2).jpeg", custom: false },
+    { id: "P022", title: "Garden Fresh Bouquet", category: "Bouquet", price: 449, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.49 PM.jpeg", custom: false },
+    { id: "P023", title: "Tropical Mix Bouquet", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.50 PM.jpeg", custom: false },
+    { id: "P024", title: "Vibrant Mix Bouquet", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.54 PM.jpeg", custom: false },
+    { id: "P025", title: "Bloom Mix Bouquet", category: "Bouquet", price: 749, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.36.54 PM (2).jpeg", custom: false },
+    { id: "P026", title: "Floral Fantasy Bouquet", category: "Bouquet", price: 649, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.41.37 PM (1).jpeg", custom: false },
+    { id: "P027", title: "Pink Tulip Bouquet", category: "Bouquet", price: 799, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.41.44 PM.jpeg", custom: false },
+    { id: "P028", title: "White Rose Black Wrap", category: "Bouquet", price: 549, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.13 PM.jpeg", custom: false },
+    { id: "P029", title: "Gerbera Carnation Bouquet", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.17 PM (1).jpeg", custom: false },
+    { id: "P030", title: "Purple Chrysanthemum Bouquet", category: "Bouquet", price: 899, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.25 PM.jpeg", custom: false },
+    { id: "P031", title: "Sunflower Bouquet", category: "Bouquet", price: 649, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.29 PM.jpeg", custom: false },
+    { id: "P032", title: "Pink Roses & Carnations", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.36 PM.jpeg", custom: false },
+    { id: "P033", title: "Alstroemeria Mix Bouquet", category: "Bouquet", price: 749, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.39 PM (1).jpeg", custom: false },
+    { id: "P034", title: "Red Rose Lily Bouquet", category: "Bouquet", price: 699, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.40 PM.jpeg", custom: false },
+    { id: "P035", title: "Red Lily Carnation Bouquet", category: "Bouquet", price: 799, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.41 PM.jpeg", custom: false },
+    { id: "P036", title: "Pink Lily Carnation Bouquet", category: "Bouquet", price: 749, discount: 0, stock: 25, tags: "mixed", image: "products/WhatsApp Image 2026-08-20 at 12.42.41 PM (2).jpeg", custom: false },
+    { id: "P037", title: "Grand Luxury Bouquet", category: "Bouquet", price: 1499, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.36.15 PM.jpeg", custom: false },
+    { id: "P038", title: "Grand Mixed Bouquet", category: "Bouquet", price: 1299, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.36.16 PM (2).jpeg", custom: false },
+    { id: "P039", title: "Royal Grand Bouquet", category: "Bouquet", price: 1999, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.36.28 PM (1).jpeg", custom: false },
+    { id: "P040", title: "Premium Grand Bouquet", category: "Bouquet", price: 1799, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.36.37 PM.jpeg", custom: false },
+    { id: "P041", title: "Signature Grand Bouquet", category: "Bouquet", price: 2499, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.37.03 PM (1).jpeg", custom: false },
+    { id: "P042", title: "100 Red Roses Grand Bouquet", category: "Bouquet", price: 2999, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.41.44 PM (1).jpeg", custom: false },
+    { id: "P043", title: "50+ Red Roses Black Wrap", category: "Bouquet", price: 3499, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.41.46 PM.jpeg", custom: false },
+    { id: "P044", title: "Ambika Signature Grand", category: "Bouquet", price: 1999, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.41.48 PM.jpeg", custom: false },
+    { id: "P045", title: "100 Mixed Roses Grand Bouquet", category: "Bouquet", price: 4999, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.42.37 PM.jpeg", custom: false },
+    { id: "P046", title: "50 Pink Roses Top View", category: "Bouquet", price: 2499, discount: 0, stock: 25, tags: "grand", image: "products/WhatsApp Image 2026-08-20 at 12.42.19 PM (1).jpeg", custom: false },
+    { id: "P047", title: "Mini Rose Bouquet", category: "Bouquet", price: 299, discount: 0, stock: 25, tags: "small", image: "products/WhatsApp Image 2026-08-20 at 12.36.26 PM (2).jpeg", custom: false },
+    { id: "P048", title: "Sweet Mini Bouquet", category: "Bouquet", price: 249, discount: 0, stock: 25, tags: "small", image: "products/WhatsApp Image 2026-08-20 at 12.36.26 PM (3).jpeg", custom: false },
+    { id: "P049", title: "Coral Pink Roses", category: "Bouquet", price: 699, discount: 0, stock: 25, tags: "small", image: "products/WhatsApp Image 2026-08-20 at 12.42.19 PM.jpeg", custom: false },
+    { id: "P050", title: "Dried Boho Bouquet", category: "Bouquet", price: 349, discount: 0, stock: 25, tags: "small", image: "products/WhatsApp Image 2026-08-20 at 12.42.25 PM (1).jpeg", custom: false },
+    { id: "P051", title: "Boho Dried Flower Bouquet", category: "Bouquet", price: 449, discount: 0, stock: 25, tags: "small", image: "products/WhatsApp Image 2026-08-20 at 12.42.25 PM (2).jpeg", custom: false },
+    { id: "P052", title: "Single Sunflower", category: "Bouquet", price: 249, discount: 0, stock: 25, tags: "small", image: "products/WhatsApp Image 2026-08-20 at 12.42.32 PM (1).jpeg", custom: false },
+    { id: "P053", title: "Pink Money Bouquet", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "money", image: "products/WhatsApp Image 2026-08-20 at 12.36.32 PM (1).jpeg", custom: false },
+    { id: "P054", title: "Peach Money Bouquet", category: "Bouquet", price: 1099, discount: 0, stock: 25, tags: "money", image: "products/WhatsApp Image 2026-08-20 at 12.36.34 PM.jpeg", custom: false },
+    { id: "P055", title: "Black Money Bouquet", category: "Bouquet", price: 1499, discount: 0, stock: 25, tags: "money", image: "products/WhatsApp Image 2026-08-20 at 12.36.34 PM (1).jpeg", custom: false },
+    { id: "P056", title: "White Money Bouquet", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "money", image: "products/WhatsApp Image 2026-08-20 at 12.36.36 PM.jpeg", custom: false },
+    { id: "P057", title: "Grey Money Bouquet", category: "Bouquet", price: 1799, discount: 0, stock: 25, tags: "money", image: "products/WhatsApp Image 2026-08-20 at 12.36.36 PM (1).jpeg", custom: false },
+    { id: "P058", title: "Purple Money Bouquet", category: "Bouquet", price: 1999, discount: 0, stock: 25, tags: "money", image: "products/WhatsApp Image 2026-08-20 at 12.36.36 PM (2).jpeg", custom: false },
+    { id: "P059", title: "Money Bouquet Premium", category: "Bouquet", price: 1199, discount: 0, stock: 25, tags: "money", image: "products/WhatsApp Image 2026-08-20 at 12.42.32 PM.jpeg", custom: false },
+    { id: "P060", title: "Choco Delight Bouquet", category: "Bouquet", price: 399, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.36.20 PM (1).jpeg", custom: false },
+    { id: "P061", title: "Chocolate Bouquet Classic", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.36.25 PM.jpeg", custom: false },
+    { id: "P062", title: "Sweet Chocolate Bouquet", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.36.41 PM.jpeg", custom: false },
+    { id: "P063", title: "Choco Love Bouquet", category: "Bouquet", price: 649, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.36.43 PM.jpeg", custom: false },
+    { id: "P064", title: "Chocolate Tower Bouquet", category: "Bouquet", price: 799, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.36.44 PM.jpeg", custom: false },
+    { id: "P065", title: "Premium Chocolate Bouquet", category: "Bouquet", price: 999, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.36.46 PM.jpeg", custom: false },
+    { id: "P066", title: "Choco Roses Bouquet", category: "Bouquet", price: 749, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.36.51 PM.jpeg", custom: false },
+    { id: "P067", title: "Chocolate Basket Bouquet", category: "Bouquet", price: 449, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.36.55 PM.jpeg", custom: false },
+    { id: "P068", title: "Dairy Milk Rose Bouquet", category: "Bouquet", price: 549, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.42.22 PM.jpeg", custom: false },
+    { id: "P069", title: "Dairy Milk KitKat Bouquet", category: "Bouquet", price: 399, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.42.26 PM.jpeg", custom: false },
+    { id: "P070", title: "KitKat 5Star Bouquet", category: "Bouquet", price: 349, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.42.26 PM (1).jpeg", custom: false },
+    { id: "P071", title: "Kinder Joy Bouquet", category: "Bouquet", price: 299, discount: 0, stock: 25, tags: "choco", image: "products/WhatsApp Image 2026-08-20 at 12.42.35 PM.jpeg", custom: false },
+    { id: "P072", title: "iPhone Chocolate Gift Tray", category: "Hamper", price: 2999, discount: 0, stock: 25, tags: "gift-hamper", image: "products/WhatsApp Image 2026-08-21 at 9.18.22 PM.jpeg", custom: false },
+    { id: "P073", title: "Luxury Chocolate Gift Box", category: "Hamper", price: 1499, discount: 0, stock: 25, tags: "gift-hamper", image: "products/WhatsApp Image 2026-08-21 at 9.18.09 PM.jpeg", custom: false },
+    { id: "P074", title: "Birthday Gift Hamper", category: "Hamper", price: 699, discount: 0, stock: 25, tags: "gift-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.41.40 PM.jpeg", custom: false },
+    { id: "P075", title: "Rose Box Hamper", category: "Hamper", price: 849, discount: 0, stock: 25, tags: "gift-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.17 PM (2).jpeg", custom: false },
+    { id: "P076", title: "Pink Hat Box", category: "Hamper", price: 949, discount: 0, stock: 25, tags: "gift-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.18 PM.jpeg", custom: false },
+    { id: "P077", title: "Ferrero Rocher Basket", category: "Hamper", price: 1199, discount: 0, stock: 25, tags: "chocolate-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.23 PM (1).jpeg", custom: false },
+    { id: "P078", title: "Chocolate Flower Basket", category: "Hamper", price: 899, discount: 0, stock: 25, tags: "chocolate-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.31 PM.jpeg", custom: false },
+    { id: "P079", title: "Rose Chocolate Basket", category: "Hamper", price: 699, discount: 0, stock: 25, tags: "chocolate-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.31 PM (1).jpeg", custom: false },
+    { id: "P080", title: "Fresh Flower Hamper", category: "Hamper", price: 799, discount: 0, stock: 25, tags: "flower-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.36.48 PM (1).jpeg", custom: false },
+    { id: "P081", title: "Classic Rose Vermala", category: "Vermala", price: 399, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.36.27 PM (1).jpeg", custom: false },
+    { id: "P082", title: "Red Rose Vermala", category: "Vermala", price: 499, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.36.55 PM (2).jpeg", custom: false },
+    { id: "P083", title: "Premium Rose Vermala", category: "Vermala", price: 649, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.36.58 PM (1).jpeg", custom: false },
+    { id: "P084", title: "Bridal Rose Vermala", category: "Vermala", price: 799, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.41.36 PM.jpeg", custom: false },
+    { id: "P085", title: "Rose Garland Pair", category: "Vermala", price: 549, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.41.38 PM (1).jpeg", custom: false },
+    { id: "P086", title: "Luxury Rose Vermala", category: "Vermala", price: 699, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.41.42 PM.jpeg", custom: false },
+    { id: "P087", title: "Rose Vermala Pair", category: "Vermala", price: 449, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.41.43 PM.jpeg", custom: false },
+    { id: "P088", title: "Pink Rose Vermala Pair", category: "Vermala", price: 599, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.42.09 PM (1).jpeg", custom: false },
+    { id: "P089", title: "Pink White Vermala Set", category: "Vermala", price: 499, discount: 0, stock: 25, tags: "rose-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.42.09 PM (2).jpeg", custom: false },
+    { id: "P090", title: "Mixed Flower Garland", category: "Vermala", price: 349, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.36.28 PM.jpeg", custom: false },
+    { id: "P091", title: "Floral Mix Vermala", category: "Vermala", price: 399, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.36.55 PM (1).jpeg", custom: false },
+    { id: "P092", title: "Pink White Rose Vermala", category: "Vermala", price: 499, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.42.04 PM (1).jpeg", custom: false },
+    { id: "P093", title: "Chrysanthemum Rose Vermala", category: "Vermala", price: 549, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.42.05 PM.jpeg", custom: false },
+    { id: "P094", title: "Baby's Breath Vermala", category: "Vermala", price: 449, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.42.08 PM.jpeg", custom: false },
+    { id: "P095", title: "Lotus Pink Vermala", category: "Vermala", price: 599, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.42.09 PM.jpeg", custom: false },
+    { id: "P096", title: "Lotus Mogra Vermala", category: "Vermala", price: 299, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.41.43 PM (1).jpeg", custom: false },
+    { id: "P097", title: "White Carnation Vermala", category: "Vermala", price: 399, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.42.12 PM (2).jpeg", custom: false },
+    { id: "P098", title: "Triple Mogra Vermala", category: "Vermala", price: 199, discount: 0, stock: 25, tags: "mixed-flower-vermala", image: "products/WhatsApp Image 2026-08-20 at 12.42.12 PM (3).jpeg", custom: false },
+    { id: "P099", title: "Thar Wedding Decor", category: "Car Decor", price: 3999, discount: 0, stock: 25, tags: "wedding-car", image: "products/WhatsApp Image 2026-08-20 at 12.41.41 PM (1).jpeg", custom: false },
+    { id: "P100", title: "Fortuner Wedding Decor", category: "Car Decor", price: 4999, discount: 0, stock: 25, tags: "wedding-car", image: "products/WhatsApp Image 2026-08-20 at 12.42.10 PM (1).jpeg", custom: false },
+    { id: "P101", title: "Fortuner Front Decor", category: "Car Decor", price: 3499, discount: 0, stock: 25, tags: "wedding-car", image: "products/WhatsApp Image 2026-08-20 at 12.42.10 PM (2).jpeg", custom: false },
+    { id: "P102", title: "Classic Car Decor", category: "Car Decor", price: 999, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.36.44 PM (1).jpeg", custom: false },
+    { id: "P103", title: "Elegant Car Decor", category: "Car Decor", price: 1499, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.36.49 PM (1).jpeg", custom: false },
+    { id: "P104", title: "Premium Car Decor", category: "Car Decor", price: 1799, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.00 PM.jpeg", custom: false },
+    { id: "P105", title: "Simple Car Decor", category: "Car Decor", price: 1099, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.01 PM (1).jpeg", custom: false },
+    { id: "P106", title: "Floral Ring Decor", category: "Car Decor", price: 1299, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.03 PM (2).jpeg", custom: false },
+    { id: "P107", title: "Luxury Car Decor", category: "Car Decor", price: 2199, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.04 PM.jpeg", custom: false },
+    { id: "P108", title: "White Rose Car Decor", category: "Car Decor", price: 1599, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.05 PM.jpeg", custom: false },
+    { id: "P109", title: "Pink Ribbon Car Decor", category: "Car Decor", price: 1399, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.05 PM (1).jpeg", custom: false },
+    { id: "P110", title: "Grand Car Decor", category: "Car Decor", price: 2499, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.05 PM (2).jpeg", custom: false },
+    { id: "P111", title: "Designer Car Decor", category: "Car Decor", price: 1699, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.06 PM.jpeg", custom: false },
+    { id: "P112", title: "Rose Car Decor", category: "Car Decor", price: 1299, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.41.40 PM (1).jpeg", custom: false },
+    { id: "P113", title: "Fortuner Floral Decor", category: "Car Decor", price: 1899, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.42.11 PM.jpeg", custom: false },
+    { id: "P114", title: "Black SUV Decor", category: "Car Decor", price: 1499, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.42.12 PM.jpeg", custom: false },
+    { id: "P115", title: "White Toyota Decor", category: "Car Decor", price: 1599, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.42.12 PM (1).jpeg", custom: false },
+    { id: "P116", title: "Land Rover Decor", category: "Car Decor", price: 2999, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.42.13 PM (1).jpeg", custom: false },
+    { id: "P117", title: "Premium SUV Decor", category: "Car Decor", price: 2199, discount: 0, stock: 25, tags: "simple-car-decor", image: "products/WhatsApp Image 2026-08-20 at 12.42.22 PM (1).jpeg", custom: false },
+    { id: "P118", title: "Fortuner Bonnet Garland", category: "Car Decor", price: 1499, discount: 0, stock: 25, tags: "new-car-delivery", image: "products/WhatsApp Image 2026-08-21 at 9.18.59 PM.jpeg", custom: false },
+    { id: "P119", title: "BMW Bonnet Flower Decor", category: "Car Decor", price: 1299, discount: 0, stock: 25, tags: "new-car-delivery", image: "products/WhatsApp Image 2026-08-21 at 9.19.05 PM.jpeg", custom: false },
+    { id: "P120", title: "Rose Garland Bonnet Decor", category: "Car Decor", price: 1599, discount: 0, stock: 25, tags: "new-car-delivery", image: "products/WhatsApp Image 2026-08-21 at 9.19.07 PM.jpeg", custom: false },
+    { id: "P121", title: "Grand Stage Decor", category: "Event Decor", price: 14999, discount: 0, stock: 25, tags: "stage-decor", image: "products/WhatsApp Image 2026-08-20 at 12.36.58 PM.jpeg", custom: false },
+    { id: "P122", title: "Floral Stage Setup", category: "Event Decor", price: 11999, discount: 0, stock: 25, tags: "stage-decor", image: "products/WhatsApp Image 2026-08-20 at 12.36.59 PM.jpeg", custom: false },
+    { id: "P123", title: "Wedding Stage Decor", category: "Event Decor", price: 24999, discount: 0, stock: 25, tags: "stage-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.00 PM (1).jpeg", custom: false },
+    { id: "P124", title: "Haldi Ceremony Decor", category: "Event Decor", price: 9999, discount: 0, stock: 25, tags: "stage-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.01 PM.jpeg", custom: false },
+    { id: "P125", title: "Floral Table Centerpiece", category: "Event Decor", price: 2999, discount: 0, stock: 25, tags: "table-decor", image: "products/WhatsApp Image 2026-08-20 at 12.36.37 PM (1).jpeg", custom: false },
+    { id: "P126", title: "Balloon Arch Setup", category: "Event Decor", price: 4999, discount: 0, stock: 25, tags: "balloon-decor", image: "products/WhatsApp Image 2026-08-20 at 12.36.40 PM (2).jpeg", custom: false },
+    { id: "P127", title: "Balloon Decoration", category: "Event Decor", price: 3499, discount: 0, stock: 25, tags: "balloon-decor", image: "products/WhatsApp Image 2026-08-20 at 12.36.42 PM.jpeg", custom: false },
+    { id: "P128", title: "Floral Entrance Gate", category: "Event Decor", price: 7999, discount: 0, stock: 25, tags: "entrance-decor", image: "products/WhatsApp Image 2026-08-20 at 12.37.05 PM (3).jpeg", custom: false },
+    { id: "P129", title: "Rose Haath Phool Set", category: "Flower Jewelry", price: 599, discount: 0, stock: 25, tags: "wristlet", image: "products/WhatsApp Image 2026-08-20 at 12.37.03 PM.jpeg", custom: false },
+    { id: "P130", title: "Bridal Wristlet Haath Phool", category: "Flower Jewelry", price: 399, discount: 0, stock: 25, tags: "wristlet", image: "products/WhatsApp Image 2026-08-20 at 12.41.37 PM (2).jpeg", custom: false },
+    { id: "P131", title: "Bridal Hand Bouquet", category: "Flower Jewelry", price: 449, discount: 0, stock: 25, tags: "wristlet", image: "products/WhatsApp Image 2026-08-20 at 12.42.00 PM.jpeg", custom: false },
+    { id: "P132", title: "Bridal Hair Flower Accessory", category: "Flower Jewelry", price: 349, discount: 0, stock: 25, tags: "hair", image: "products/WhatsApp Image 2026-08-20 at 12.41.38 PM.jpeg", custom: false },
+    { id: "P133", title: "Purple Silver Balloon Arch", category: "Balloon", price: 2999, discount: 0, stock: 25, tags: "arch", image: "products/WhatsApp Image 2026-08-21 at 9.16.09 PM.jpeg", custom: false },
+    { id: "P134", title: "Rose Gold Balloon Arch", category: "Balloon", price: 3499, discount: 0, stock: 25, tags: "arch", image: "products/WhatsApp Image 2026-08-21 at 9.16.09 PM (1).jpeg", custom: false },
+    { id: "P135", title: "Pink Purple Balloon Arch", category: "Balloon", price: 2499, discount: 0, stock: 25, tags: "arch", image: "products/WhatsApp Image 2026-08-21 at 9.18.11 PM.jpeg", custom: false },
+    { id: "P136", title: "Blue White Balloon Arch", category: "Balloon", price: 2999, discount: 0, stock: 25, tags: "arch", image: "products/WhatsApp Image 2026-08-21 at 9.18.12 PM.jpeg", custom: false },
+    { id: "P137", title: "Birthday Bubble Balloon", category: "Balloon", price: 1499, discount: 0, stock: 25, tags: "birthday", image: "products/WhatsApp Image 2026-08-21 at 9.16.14 PM.jpeg", custom: false },
+    { id: "P138", title: "Birthday Balloon Hamper", category: "Balloon", price: 1999, discount: 0, stock: 25, tags: "birthday", image: "products/WhatsApp Image 2026-08-21 at 9.16.14 PM (1).jpeg", custom: false },
+    { id: "P139", title: "Birthday Balloon Decor", category: "Balloon", price: 1299, discount: 0, stock: 25, tags: "birthday", image: "products/WhatsApp Image 2026-08-21 at 9.16.14 PM (2).jpeg", custom: false },
+    { id: "P140", title: "Car Birthday Balloon Arch", category: "Balloon", price: 1799, discount: 0, stock: 25, tags: "birthday", image: "products/WhatsApp Image 2026-08-21 at 9.16.15 PM.jpeg", custom: false },
+    { id: "P141", title: "Birthday Balloon Setup", category: "Balloon", price: 2499, discount: 0, stock: 25, tags: "birthday", image: "products/WhatsApp Image 2026-08-21 at 9.16.15 PM (1).jpeg", custom: false },
+    { id: "P142", title: "Baby Shower Balloon Stage", category: "Balloon", price: 3999, discount: 0, stock: 25, tags: "baby-shower", image: "products/WhatsApp Image 2026-08-21 at 9.18.38 PM.jpeg", custom: false },
+    { id: "P143", title: "Birthday Balloon Bouquet", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "birthday-balloon", image: "products/WhatsApp Image 2026-08-20 at 12.36.17 PM.jpeg", custom: false },
+    { id: "P144", title: "Happy Birthday Balloons", category: "Bouquet", price: 399, discount: 0, stock: 25, tags: "birthday-balloon", image: "products/WhatsApp Image 2026-08-20 at 12.36.17 PM (1).jpeg", custom: false },
+    { id: "P145", title: "Birthday Balloon Decor", category: "Bouquet", price: 599, discount: 0, stock: 25, tags: "birthday-balloon", image: "products/WhatsApp Image 2026-08-20 at 12.36.17 PM (2).jpeg", custom: false },
+    { id: "P146", title: "Party Balloon Set", category: "Bouquet", price: 699, discount: 0, stock: 25, tags: "birthday-balloon", image: "products/WhatsApp Image 2026-08-20 at 12.36.27 PM.jpeg", custom: false },
+    { id: "P147", title: "Birthday Balloon Arch", category: "Bouquet", price: 999, discount: 0, stock: 25, tags: "birthday-balloon", image: "products/WhatsApp Image 2026-08-20 at 12.36.31 PM (1).jpeg", custom: false },
+    { id: "P148", title: "Balloon Surprise Setup", category: "Bouquet", price: 1499, discount: 0, stock: 25, tags: "birthday-balloon", image: "products/WhatsApp Image 2026-08-20 at 12.36.45 PM (2).jpeg", custom: false },
+    { id: "P149", title: "Birthday Special Hamper", category: "Bouquet", price: 799, discount: 0, stock: 25, tags: "birthday-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.36.27 PM (2).jpeg", custom: false },
+    { id: "P150", title: "Birthday Gift Basket", category: "Bouquet", price: 649, discount: 0, stock: 25, tags: "birthday-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.36.39 PM.jpeg", custom: false },
+    { id: "P151", title: "Birthday Surprise Box", category: "Bouquet", price: 899, discount: 0, stock: 25, tags: "birthday-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.36.40 PM.jpeg", custom: false },
+    { id: "P152", title: "Teddy Balloon Combo", category: "Bouquet", price: 1199, discount: 0, stock: 25, tags: "birthday-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.04 PM.jpeg", custom: false },
+    { id: "P153", title: "Mixed Flower Tray", category: "Bouquet", price: 549, discount: 0, stock: 25, tags: "birthday-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.23 PM (2).jpeg", custom: false },
+    { id: "P154", title: "Yellow Pink Rose Basket", category: "Bouquet", price: 299, discount: 0, stock: 25, tags: "birthday-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.24 PM.jpeg", custom: false },
+    { id: "P155", title: "Romantic Room Decor", category: "Bouquet", price: 2999, discount: 0, stock: 25, tags: "romantic-setup", image: "products/WhatsApp Image 2026-08-20 at 12.36.18 PM.jpeg", custom: false },
+    { id: "P156", title: "Candlelight Setup", category: "Bouquet", price: 1999, discount: 0, stock: 25, tags: "romantic-setup", image: "products/WhatsApp Image 2026-08-20 at 12.36.18 PM (1).jpeg", custom: false },
+    { id: "P157", title: "Rose Petal Love Setup", category: "Bouquet", price: 2499, discount: 0, stock: 25, tags: "romantic-setup", image: "products/WhatsApp Image 2026-08-20 at 12.42.16 PM.jpeg", custom: false },
+    { id: "P158", title: "Anniversary Special Bouquet", category: "Bouquet", price: 799, discount: 0, stock: 25, tags: "anniversary-bouquet", image: "products/WhatsApp Image 2026-08-20 at 12.36.25 PM (1).jpeg", custom: false },
+    { id: "P159", title: "Photo Bouquet", category: "Bouquet", price: 999, discount: 0, stock: 25, tags: "anniversary-bouquet", image: "products/WhatsApp Image 2026-08-20 at 12.42.39 PM.jpeg", custom: false },
+    { id: "P160", title: "Photo Bouquet Black", category: "Bouquet", price: 1099, discount: 0, stock: 25, tags: "anniversary-bouquet", image: "products/WhatsApp Image 2026-08-20 at 12.42.38 PM (1).jpeg", custom: false },
+    { id: "P161", title: "Photo Bouquet White", category: "Bouquet", price: 1099, discount: 0, stock: 25, tags: "anniversary-bouquet", image: "products/WhatsApp Image 2026-08-20 at 12.42.38 PM (2).jpeg", custom: false },
+    { id: "P162", title: "I Love You Red Bouquet", category: "Bouquet", price: 499, discount: 0, stock: 25, tags: "anniversary-bouquet", image: "products/WhatsApp Image 2026-08-20 at 12.42.41 PM (1).jpeg", custom: false },
+    { id: "P163", title: "25th Anniversary Box", category: "Bouquet", price: 1499, discount: 0, stock: 25, tags: "anniversary-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.38 PM.jpeg", custom: false }
+  ];
+  /* ---- Server API (small shared JSON database on the Railway backend) ---- */
+  function apiGet(p) { return fetch(p).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
+  function apiSend(method, p, body) { return fetch(p, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
+  function normalizeOrder(o) {
+    if (o.statusIdx === undefined) o.statusIdx = FLORAL.indexOf(o.status) >= 0 ? FLORAL.indexOf(o.status) : 0;
+    o.status = deriveStatus(o);
+    if (!o.customer) o.customer = o.name || "Guest";
+    if (o.amount === undefined || o.amount === null) o.amount = o.total || 0;
+    if (!o.product && o.items && o.items.length) o.product = o.items.map(function (it) { return it.name || it.title; }).filter(Boolean).join(", ");
+    if (!o.greeting) o.greeting = pick(GREETINGS);
+    if (!o.slot) o.slot = pick(SLOTS);
+    if (!o.placed) o.placed = o.date || fmtDate(daysAgo(rand(0, 10)));
+    if (!o.deliveryDate || typeof o.deliveryDate !== "string") o.deliveryDate = fmtDate(daysAgo(-rand(0, 6)));
+    return o;
+  }
+  function customersFromServer(list) {
+    return list.map(function (c) {
+      var mine = orders.filter(function (o) { return (c.phone && o.phone === c.phone) || (c.name && (o.customer === c.name || o.name === c.name)); });
+      return { id: c.id || "CUS", name: c.name || "Customer", email: c.email || "—", phone: c.phone || "—",
+        orders: mine.length, ltv: mine.reduce(function (s, o) { return s + (+o.amount || 0); }, 0),
+        last: c.createdAt ? new Date(c.createdAt) : new Date(), city: c.city || "Sikar", status: "Active" };
+    });
+  }
+  var _lastOrderN = -1;
+  function syncFromServer(initial) {
+    apiGet("/api/products").then(function (d) { if (Array.isArray(d) && d.length) { products = d; if (current === "products") go("products"); } }).catch(function () {});
+    apiGet("/api/orders").then(function (d) {
+      if (!Array.isArray(d)) return;
+      orders = d.map(normalizeOrder);
+      var grew = orders.length > _lastOrderN && _lastOrderN >= 0;
+      _lastOrderN = orders.length;
+      if (grew) {
+        try { playOrderSound(); } catch (e) {}
+        var latest = orders[0];
+        notify("🎉 New order received!" + (latest ? " " + esc(latest.id || "") + " · " + inr(latest.amount) : ""));
+        if (typeof toast === "function") toast("🔔 New order received!");
+      }
+      if ((initial || grew) && /dashboard|orders|analytics|payments|customers/.test(current)) go(current);
+    }).catch(function () {});
+    apiGet("/api/customers").then(function (d) { if (Array.isArray(d)) { customers = customersFromServer(d); if (current === "customers") go("customers"); } }).catch(function () {});
+    apiGet("/api/settings").then(function (d) { if (d && typeof d === "object") { var was = siteSettings.comingSoon; siteSettings = d; if (current === "dashboard" && was !== !!d.comingSoon) go("dashboard"); } }).catch(function () {});
+  }
+  function saveProducts() {
+    try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {}
+    apiSend("PUT", "/api/products", products).catch(function () {});   // persist to the shared database
+  }
   var products = (function () {
     var existing = null; try { existing = JSON.parse(localStorage.getItem("ambika_products")); } catch (e) {}
     if (existing && existing.length) return existing;
-    return []; // add your real products from the "+ Add Product" screen
+    return DEFAULT_CATALOG.slice(); // show the storefront catalogue by default
   })();
+  // Global storefront settings (e.g. Coming Soon price mode), shared via the server
+  var siteSettings = { comingSoon: false };
   function stockStatus(s) { return s === 0 ? { t: "Out of Stock", c: "red" } : s <= 10 ? { t: "Low Stock", c: "amber" } : { t: "In Stock", c: "green" }; }
 
   /* ---- Shared live stores (written by the storefront tracker) ---- */
@@ -134,7 +350,7 @@
   }
 
   /* ---- Dynamic stats derived from the live shared stores ---- */
-  function freshOrders() { var o = lsLoad("ambika_orders"); return (o && o.length) ? o : orders; }
+  function freshOrders() { return (orders && orders.length) ? orders : (lsLoad("ambika_orders") || []); }
   function computeStats() {
     var ords = freshOrders();
     var live = ords.filter(function (o) { return o.statusIdx !== "Cancelled" && o.status !== "Cancelled"; });
@@ -185,11 +401,20 @@
   var pages = {};
 
   /* ---------- DASHBOARD ---------- */
+  function comingSoonBanner() {
+    var on = !!siteSettings.comingSoon;
+    return '<div class="card" style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-left:5px solid ' + (on ? '#e84393' : '#22c55e') + ';">' +
+      '<div><div style="font-weight:800;font-size:16px;color:var(--ink);">🏷️ Coming Soon Mode — ' + (on ? '<span style="color:#e84393;">ON</span>' : '<span style="color:#22c55e;">OFF</span>') + '</div>' +
+      '<div class="sub" style="margin:4px 0 0;">' + (on ? 'Website pe har product ke price ki jagah "Coming Soon" dikh raha hai (mobile + PC).' : 'Website pe normal live prices dikh rahe hain.') + '</div></div>' +
+      '<button class="btn btn-primary" onclick="ADMIN.toggleComingSoon()">' + (on ? '✅ Turn OFF — Show Prices' : '🏷️ Turn ON — Coming Soon') + '</button>' +
+      '</div>';
+  }
   pages.dashboard = function () {
     var st = computeStats();
     return '' +
       '<div class="page-head"><div><h1>Dashboard</h1><p>Welcome back, Keshav — here’s today at Ambika Flowers 🌸</p></div>' +
       '<button class="btn btn-primary" onclick="ADMIN.go(\'products\')">＋ Add Product</button></div>' +
+      comingSoonBanner() +
       '<div class="grid g-4">' +
         metric("pink", "💰", "Total Revenue", inr(st.revenue), "up", "live from orders") +
         metric("green", "🛒", "Today’s Sales", inr(st.todaySales), "up", "orders placed today") +
@@ -314,6 +539,18 @@
   };
 
   /* ---------- ORDERS ---------- */
+  // Always show the CURRENT catalogue photo for a product (matched by name),
+  // so old orders don't keep showing outdated images. Falls back to whatever
+  // image was stored on the order if no catalogue match is found.
+  function prodImgByName(name, fallback) {
+    if (!name) return fallback || "";
+    var key = String(name).replace(/\s*\+\d+\s*more$/i, "").trim().toLowerCase();
+    for (var i = 0; i < products.length; i++) {
+      var t = (products[i].title || products[i].name || "").trim().toLowerCase();
+      if (t && t === key) return products[i].image || products[i].img || fallback || "";
+    }
+    return fallback || "";
+  }
   var orderFilter = "All";
   pages.orders = function () {
     var live = freshOrders();
@@ -331,7 +568,8 @@
           var cur = o.status || deriveStatus(o);
           var opts = ORDER_STATUSES.map(function (s) { return '<option ' + (s === cur ? "selected" : "") + '>' + s + '</option>'; }).join("");
           var pName = o.product || (o.items && o.items[0] && o.items[0].name) || "—";
-          var pImg = (o.items && o.items[0] && o.items[0].img) || o.image || "";
+          var firstItemName = (o.items && o.items[0] && o.items[0].name) || o.product;
+          var pImg = prodImgByName(firstItemName, (o.items && o.items[0] && o.items[0].img) || o.image || "");
           var pThumb = pImg ? '<img src="' + esc(pImg) + '" alt="" onerror="this.style.display=\'none\'" style="width:40px;height:40px;border-radius:8px;object-fit:cover;margin-right:9px;vertical-align:middle;background:#f0f0f0;box-shadow:0 1px 4px rgba(0,0,0,.12);">' : '';
           return '<tr><td><b>' + esc(o.id) + '</b></td><td>' + esc(o.customer || "Guest") + '</td><td style="white-space:nowrap;">' + pThumb + '<span style="vertical-align:middle;">' + esc(pName) + '</span></td><td><b>' + inr(o.amount) + '</b></td>' +
             '<td>' + esc(o.deliveryDate || "—") + '<br><small style="color:var(--ink2);">' + esc(o.slot || "") + '</small></td>' +
@@ -365,7 +603,8 @@
       return '<tr><td>' + thumb + '<b>' + esc(p.title) + '</b>' + (p.custom ? ' <span class="pill pink" style="font-size:9px;">NEW</span>' : '') + '<br><small style="color:var(--ink2);">' + p.id + ' · ' + esc(p.tags) + '</small></td>' +
         '<td><span class="pill blue">' + esc(p.category) + '</span></td><td>' + inr(p.price) + '</td>' +
         '<td>' + (p.discount ? p.discount + "%" : "—") + '</td><td><b>' + p.stock + '</b></td><td>' + statusPill(ss.t) + '</td>' +
-        '<td><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button></td></tr>';
+        '<td style="white-space:nowrap;"><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button> ' +
+          '<button class="mini-btn" title="Delete" style="color:#d33;" onclick="ADMIN.delProduct(\'' + p.id + '\')">🗑 Delete</button></td></tr>';
     }).join("");
   }
 
@@ -579,6 +818,16 @@
   /* ------------------------------------------------------------------ */
   window.ADMIN = {
     go: go,
+    toggleComingSoon: function () {
+      var next = !siteSettings.comingSoon;
+      apiSend("PUT", "/api/settings", { comingSoon: next })
+        .then(function (d) { siteSettings = (d && typeof d === "object") ? d : { comingSoon: next }; })
+        .catch(function () { siteSettings.comingSoon = next; })
+        .then(function () {
+          notify(siteSettings.comingSoon ? "🏷️ Coming Soon mode ON — website pe prices chhup gaye" : "✅ Coming Soon mode OFF — prices wapas live");
+          go("dashboard");
+        });
+    },
     orderFilter: function (s) { orderFilter = s; go("orders"); },
     setStatus: function (id, s) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) { x.status = s; x.statusIdx = (s === "Cancelled") ? "Cancelled" : FLORAL.indexOf(s); } }); lsSave("ambika_orders", o); notify("Order " + id + " → " + s + " (synced to live tracker)"); },
     setTrack: function (id, t) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) x.track = t; }); lsSave("ambika_orders", o); notify("Tracking saved for " + id); },
@@ -606,7 +855,8 @@
       var items = (o.items && o.items.length) ? o.items : [{ name: o.product, price: o.amount, img: o.image, qty: 1 }];
       var gallery = '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">' +
         items.map(function (it) {
-          var img = it.img ? '<img src="' + esc(it.img) + '" alt="" onerror="this.style.visibility=\'hidden\'" style="width:56px;height:56px;border-radius:10px;object-fit:cover;background:#f0f0f0;box-shadow:0 2px 6px rgba(0,0,0,.12);">' : '<div style="width:56px;height:56px;border-radius:10px;background:#f0f0f0;"></div>';
+          var itImg = prodImgByName(it.name, it.img);
+          var img = itImg ? '<img src="' + esc(itImg) + '" alt="" onerror="this.style.visibility=\'hidden\'" style="width:56px;height:56px;border-radius:10px;object-fit:cover;background:#f0f0f0;box-shadow:0 2px 6px rgba(0,0,0,.12);">' : '<div style="width:56px;height:56px;border-radius:10px;background:#f0f0f0;"></div>';
           return '<div style="display:flex;align-items:center;gap:12px;background:var(--bg2,#f7f8fb);border-radius:12px;padding:10px 12px;">' + img +
             '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;color:var(--ink);">' + esc(it.name || "Product") + '</div>' +
             '<div style="font-size:12px;color:var(--ink2);">' + inr(it.price) + (it.qty ? ' × ' + it.qty : '') + '</div></div></div>';
@@ -614,14 +864,28 @@
       openModal("Order " + o.id,
         gallery +
         '<div class="grid g-2" style="gap:10px;margin-bottom:16px;">' +
-          kv("Customer", o.customer || "Guest") + kv("Amount", inr(o.amount)) + kv("Status", o.status || deriveStatus(o)) +
+          kv("Customer", o.customer || "Guest") + kv("Phone", o.phone || "—") + kv("Amount", inr(o.amount)) + kv("Status", o.status || deriveStatus(o)) +
+          kv("Payment", (o.method || "—") + (o.paymentStatus ? " · " + o.paymentStatus : "")) +
+          kv("Payment Ref / Txn ID", o.reference || "—") +
           kv("Placed On", placed) + kv("Tracking #", o.track || "—") +
         '</div>' +
-        (o.greeting ? '<div class="section-title">🎁 Gifting Details</div><div class="addr-box"><b>Greeting Card Message</b>' + esc(o.greeting) + '</div>' : '') +
+        (o.address ? '<div class="section-title">📍 Delivery Address</div><div class="addr-box">' + esc(o.address) + '</div>' : '') +
+        (o.customization ? '<div class="section-title">✏️ Customization / Special Request</div><div class="addr-box" style="border-left:4px solid #e84393;background:#fff0f6;color:#7a1f4e;font-weight:600;">' + esc(o.customization) + '</div>' : '') +
+        (o.gift ? '<div class="section-title">🎁 Gift Card Message</div><div class="addr-box">' + esc(o.gift) + '</div>' : '') +
         '<div class="grid g-2" style="gap:10px;">' + kv("Delivery Date", o.deliveryDate || "—") + kv("Preferred Slot", o.slot || "—") + '</div>');
     },
     addProduct: function () { productForm(null); },
     editProduct: function (id) { productForm(products.filter(function (p) { return p.id === id; })[0]); },
+    delProduct: function (id) {
+      var p = products.filter(function (x) { return x.id === id; })[0];
+      if (!p) return;
+      if (!confirm('Delete "' + p.title + '"?\nYe product hamesha ke liye hat jayega.')) return;
+      var i = products.map(function (x) { return x.id; }).indexOf(id);
+      if (i > -1) products.splice(i, 1);
+      saveProducts();
+      if (current === "products") go("products");
+      notify("Product deleted ✓");
+    },
     saveProduct: function () {
       var t = $("#pfTitle").value.trim(); if (!t) { notify("Title required"); return; }
       var editing = $("#pfId").value;
@@ -842,6 +1106,10 @@
     renderNotifs();
     updateLeadBadge();
     go("dashboard");
+
+    // Load live shared data from the server, then keep it fresh (new orders / signups)
+    syncFromServer(true);
+    setInterval(function () { syncFromServer(false); }, 6000);
   }
 
   /* ------------------------------------------------------------------ */

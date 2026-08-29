@@ -330,9 +330,9 @@ document.getElementById('p-badge').textContent = product.badge;
 document.getElementById('p-badge').className = 'p-badge badge-' + product.badgeType;
 document.getElementById('img-badge').textContent = product.badge;
 document.getElementById('img-badge').style.background = product.badgeType==='bestseller'?'#f59e0b':product.badgeType==='new'?'#10b981':product.badgeType==='sale'?'#e84393':'#7c3aed';
-document.getElementById('p-price').textContent = '₹' + product.price.toLocaleString('en-IN');
-document.getElementById('p-orig').textContent = '₹' + product.orig.toLocaleString('en-IN');
-document.getElementById('p-off').textContent = product.disc + '% OFF';
+document.getElementById('p-price').textContent = 'Coming Soon';
+document.getElementById('p-orig').textContent = '';
+document.getElementById('p-off').textContent = '';
 document.getElementById('p-reviews').textContent = '(' + product.reviews + ' reviews)';
 document.getElementById('p-rnum').textContent = product.rating.toFixed(1);
 const starFull = Math.round(product.rating);
@@ -371,7 +371,7 @@ product.details.forEach(function(d) {
 const others = PRODUCTS.filter(function(p){return p.id !== product.id;}).slice(0,4);
 const rg = document.getElementById('related-grid');
 others.forEach(function(p) {
-  rg.innerHTML += '<div class="rel-card" onclick="location.href=\'product2.html?id=' + p.id + '\'"><div class="rel-img"><img src="' + p.img + '" alt="' + p.name + '"></div><div class="rel-info"><div class="rel-name">' + p.name + '</div><span class="rel-price">₹' + p.price.toLocaleString('en-IN') + '</span><span class="rel-off">' + p.disc + '% OFF</span></div></div>';
+  rg.innerHTML += '<div class="rel-card" onclick="location.href=\'product2.html?id=' + p.id + '\'"><div class="rel-img"><img src="' + p.img + '" alt="' + p.name + '"></div><div class="rel-info"><div class="rel-name">' + p.name + '</div><span class="rel-price">Coming Soon</span></div></div>';
 });
 </script>
 <script src="shop.js"></script>

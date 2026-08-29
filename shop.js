@@ -215,6 +215,8 @@
     document.getElementById("ak-resend").addEventListener("click", function (e) { e.preventDefault(); sendOtp(); });
     document.getElementById("ak-otp-change").addEventListener("click", function (e) { e.preventDefault(); showLoginPane("otp"); });
     wireOtpCells();
+    // OTP login needs paid SMS, so we hide it — customers log in with a password
+    var _toOtp = document.getElementById("ak-to-otp"); if (_toOtp && _toOtp.parentNode) _toOtp.parentNode.style.display = "none";
     document.addEventListener("click", function (e) { var b = e.target.closest(".ak-ripple"); if (b) spawnRipple(b, e); });
 
     /* account menu actions */
@@ -328,6 +330,8 @@
   function checkout() {
     if (window.AmbikaTrack) try { window.AmbikaTrack.logActivity("cart", "💳", window.AmbikaTrack.visitorName() + " started checkout (₹" + subtotal() + ")"); } catch (e) {}
     if (cart.length === 0) { toast("Your cart is empty"); return; }
+    // Login is required before ordering — so we capture the customer + address
+    if (!user) { toast("Order karne ke liye pehle login / signup karein 🌸", false); closeCart(); openAuth("login"); return; }
     if (window.AmbikaPay && window.AmbikaPay.openCheckout) {
       var payload = {
         items: cart.map(function (i) { return { name: i.name, price: i.price, img: i.img, qty: i.qty }; }),
@@ -356,12 +360,12 @@
     if (pill) pill.style.transform = login ? "translateX(0)" : "translateX(100%)";
     var lf = document.getElementById("ak-login-form");
     var sf = document.getElementById("ak-signup-form");
-    if (login) { sf.style.display = "none"; lf.style.display = ""; showLoginPane("otp"); }
+    if (login) { sf.style.display = "none"; lf.style.display = ""; showLoginPane("pw"); }
     else { lf.style.display = "none"; sf.style.display = ""; }
     var shown = login ? lf : sf;
     shown.classList.remove("ak-fade"); void shown.offsetWidth; shown.classList.add("ak-fade");
     document.getElementById("ak-auth-title").textContent = login ? "Welcome Back" : "Create Account";
-    document.getElementById("ak-auth-sub").textContent = login ? "Login with OTP or password 🌸" : "Join the Ambika Flowers family 🌷";
+    document.getElementById("ak-auth-sub").textContent = login ? "Apne password se login karein 🌸" : "Join the Ambika Flowers family 🌷";
   }
 
   /* ---- Login sub-panes (OTP / code / password) ---- */
@@ -545,10 +549,18 @@
     setErr("l-id", !idOk); if (!idOk) ok = false;
     setErr("l-pw", pw.length < 6); if (pw.length < 6) ok = false;
     if (!ok) return;
-    var known = load(USER_KEY);
-    var name = known && known.email === id ? known.name : (isEmail(id) ? id.split("@")[0] : "Guest");
-    finishAuth({ name: name, email: isEmail(id) ? id : (known ? known.email : ""), phone: isPhone(id) ? id : (known ? known.phone : ""), role: "customer" });
-    toast("Welcome back, " + firstName() + "!", true);
+    // Real login — verify the password against the database
+    var sbtn = document.querySelector("#ak-pane-pw .ak-submit");
+    if (sbtn) { sbtn.disabled = true; sbtn.style.opacity = ".7"; }
+    fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id, password: pw }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; }
+        if (!res.ok) { setErr("l-pw", true); toast((res.d && res.d.error) || "Login nahi hua"); return; }
+        finishAuth(Object.assign({ role: "customer" }, res.d.user), res.d.token);
+        toast("Welcome back, " + firstName() + "! 🌸", true);
+      })
+      .catch(function () { if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; } toast("Server tak nahi pahuncha, dobara try karein"); });
   }
 
   /* ---- Admin authentication + redirect ---- */
@@ -575,16 +587,29 @@
     setErr("s-phone", !isPhone(phone)); if (!isPhone(phone)) ok = false;
     setErr("s-pw", pw.length < 6); if (pw.length < 6) ok = false;
     if (!ok) return;
-    // Require OTP verification before creating the account (OTP is shown, then auto-filled)
-    pendingSignup = { name: name, email: email, phone: phone };
-    startOtpFlow(phone, true, "Verify Your Number", "Confirm the OTP to create your account 🌸");
+    // Real signup — create the account in the database (password is hashed server-side)
+    var btn = document.querySelector("#ak-signup-form .ak-submit");
+    if (btn) { btn.disabled = true; btn.style.opacity = ".7"; }
+    fetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name, email: email, phone: phone, password: pw }) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (btn) { btn.disabled = false; btn.style.opacity = ""; }
+        if (!res.ok) { toast((res.d && res.d.error) || "Signup nahi hua, dobara try karein"); return; }
+        finishAuth(Object.assign({ role: "customer" }, res.d.user), res.d.token);
+        toast("Account ban gaya — welcome, " + firstName() + "! 🌸", true);
+      })
+      .catch(function () { if (btn) { btn.disabled = false; btn.style.opacity = ""; } toast("Server tak nahi pahuncha, dobara try karein"); });
   }
 
-  function finishAuth(u) {
+  function finishAuth(u, token) {
     u = u || {};
-    user = { name: u.name || "Guest", email: u.email || "", phone: u.phone || "", role: u.role || "customer" };
+    user = { id: u.id || "", name: u.name || "Guest", email: u.email || "", phone: u.phone || "", address: u.address || "", role: u.role || "customer" };
     save(USER_KEY, user);
-    try { localStorage.setItem("ambika_isLoggedIn", "true"); localStorage.setItem("ambika_role", user.role); } catch (e) {}
+    try {
+      localStorage.setItem("ambika_isLoggedIn", "true");
+      localStorage.setItem("ambika_role", user.role);
+      if (token) localStorage.setItem("ambika_token", token);
+    } catch (e) {}
     clearInterval(resendCd);
     otpCode = null;
     closeAuth();
@@ -1127,21 +1152,21 @@
       '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\';">' +
       '<div class="pay-qr-fallback">' + fb + '</div>';
   }
+  function refField() {
+    return '<div class="pay-ref-wrap" style="margin-top:14px;">' +
+      '<label style="display:block;font-size:13px;font-weight:700;color:#a23b7a;margin-bottom:6px;">Payment Reference / UPI Transaction ID <span style="color:#d33;">*</span></label>' +
+      '<input id="pay-ref" autocomplete="off" placeholder="Payment ke baad app se mili Transaction/UTR ID daalo" ' +
+      'style="width:100%;box-sizing:border-box;border:1.5px solid #ecd6e1;border-radius:10px;padding:11px 12px;font-size:14px;"></div>';
+  }
   function methodPanel(method, amount) {
-    var upiId = "ambika@upi";
+    var upiId = "7737014301@ybl";
     var uri = "upi://pay?pa=" + upiId + "&pn=Ambika%20Flowers&am=" + amount + "&cu=INR";
-    if (method === "upi") {
-      return '<div class="pay-panel">' + qrBlock(uri) +
-        '<div class="pay-upi"><span>UPI ID:</span><code id="pay-upi-id">' + upiId + '</code><button type="button" class="pay-copy" id="pay-copy">Copy</button></div>' +
-        '<a class="pay-app" href="' + uri + '">📱 Pay via UPI App (GPay / PhonePe / Paytm)</a>' +
-        '<div class="pay-secure">🔒 Scan the QR or pay to the UPI ID, then tap “Confirm &amp; Pay”.</div></div>';
-    }
-    if (method === "card") {
-      return '<div class="pay-panel"><div class="pay-card">Enter your card / net-banking details (demo — Razorpay-style, no real charge).' +
-        '<div class="pay-card-row"><input class="full" placeholder="Card Number 4242 4242 4242 4242" inputmode="numeric" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;">' +
-        '<input placeholder="MM / YY" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;">' +
-        '<input placeholder="CVV" inputmode="numeric" style="border:1.5px solid #ecd6e1;border-radius:10px;padding:10px 12px;"></div></div>' +
-        '<div class="pay-secure">🔒 Secured by Razorpay (demo). Cards are not actually charged.</div></div>';
+    if (method === "upi" || method === "card") {
+      return '<div class="pay-panel"><div style="text-align:center;padding:22px 14px;">' +
+        '<div style="font-size:40px;margin-bottom:8px;">🔐</div>' +
+        '<div style="font-size:16px;font-weight:800;color:#3a2540;margin-bottom:6px;">Secure Online Payment</div>' +
+        '<div style="font-size:13.5px;color:#666;line-height:1.5;">“<b>Confirm &amp; Pay</b>” dabate hi Razorpay ka secure window khulega — usme <b>UPI, GPay/PhonePe/Paytm, Cards, Net Banking &amp; Wallets</b> sab hain. Payment hote hi order apne aap confirm ho jayega.</div>' +
+        '</div><div class="pay-secure">🔒 100% Secure · Powered by Razorpay</div></div>';
     }
     return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay ₹' + amount + ' in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
       '<div class="pay-secure">Your order will be marked <b>Pending COD</b> until delivery.</div></div>';
@@ -1191,6 +1216,26 @@
     payState.deliveryFee = delivery;
     payState.deliveryZone = del.zone;
     var loc = load("ambika_location");
+    var payUser = load("ambika_user") || {};
+    var prefillAddr = payUser.address || (loc && loc.label ? loc.label : "");
+    // When "Coming Soon" mode is on (prices not finalised), allow only Cash on Delivery
+    var cs = !!payState.comingSoon;
+    var methodsHtml;
+    if (cs) {
+      methodsHtml =
+        '<div class="pay-methods" id="pay-methods">' +
+          '<div class="pay-m sel" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
+        '</div>' +
+        '<div style="background:#fff0f6;border:1px dashed #e84393;border-radius:12px;padding:11px 13px;margin:2px 0 4px;font-size:13px;color:#7a1f4e;line-height:1.5;">🏷️ Iss product ki pricing abhi finalise ho rahi hai. Abhi <b>Cash on Delivery</b> se order karein — hum aapko call karke final price &amp; details confirm kar denge. 🌸</div>';
+    } else {
+      methodsHtml =
+        '<div class="pay-methods" id="pay-methods">' +
+          '<div class="pay-m' + (payState.method === "upi" ? " sel" : "") + '" data-m="upi"><span class="pe">📲</span>UPI / QR</div>' +
+          '<div class="pay-m' + (payState.method === "card" ? " sel" : "") + '" data-m="card"><span class="pe">💳</span>Card / Net Banking</div>' +
+          '<div class="pay-m' + (payState.method === "cod" ? " sel" : "") + '" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
+        '</div>';
+    }
+    var confirmLabel = payState.method === "cod" ? ("Place Order · ₹" + total.toLocaleString("en-IN")) : ("Confirm &amp; Pay ₹" + total.toLocaleString("en-IN"));
     var body =
       '<div class="pay-sum">' +
         p.items.map(function (it) { return '<div class="pl"><span>' + esc(it.name) + ' × ' + it.qty + '</span><span>₹' + (it.price * it.qty).toLocaleString("en-IN") + '</span></div>'; }).join("") +
@@ -1202,16 +1247,13 @@
       '<div class="pay-flds">' +
         '<div class="pay-fld"><label>Delivery Date</label><input type="date" id="pay-date"></div>' +
         '<div class="pay-fld"><label>Time Slot</label><select id="pay-slot"><option>9 AM – 12 PM</option><option>12 PM – 3 PM</option><option selected>3 PM – 6 PM</option><option>6 PM – 9 PM</option></select></div>' +
-        '<div class="pay-fld full"><label>Delivery Address</label><input id="pay-addr" placeholder="Full delivery address" value="' + (loc && loc.label ? esc(loc.label) : "") + '"></div>' +
+        '<div class="pay-fld full"><label>Delivery Address</label><input id="pay-addr" placeholder="Full delivery address" value="' + esc(prefillAddr) + '"></div>' +
         '<div class="pay-fld full"><label>Gift Card Message (optional)</label><textarea id="pay-gift" rows="2" placeholder="Write a sweet note…"></textarea></div>' +
+        '<div class="pay-fld full"><label>Customization / Special Request (optional)</label><textarea id="pay-custom" rows="2" placeholder="Koi customization chahiye? Jaise colour, flower type, packing, ya koi khaas message — yahan likho…"></textarea></div>' +
       '</div>' +
-      '<div class="pay-methods" id="pay-methods">' +
-        '<div class="pay-m sel" data-m="upi"><span class="pe">📲</span>UPI / QR</div>' +
-        '<div class="pay-m" data-m="card"><span class="pe">💳</span>Card / Net Banking</div>' +
-        '<div class="pay-m" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
-      '</div>' +
+      methodsHtml +
       '<div id="pay-panel">' + methodPanel(payState.method, total) + '</div>' +
-      '<button class="pay-confirm" id="pay-confirm">Confirm &amp; Pay ₹' + total.toLocaleString("en-IN") + '</button>' +
+      '<button class="pay-confirm" id="pay-confirm">' + confirmLabel + '</button>' +
       '<div class="pay-secure">🔒 100% Secure Payments · Razorpay / UPI</div>';
     el("af-pay-body").innerHTML = body;
 
@@ -1232,31 +1274,85 @@
   function wirePanel() {
     var cp = el("pay-copy");
     if (cp) cp.addEventListener("click", function () {
-      var t = "ambika@upi";
+      var t = "7737014301@ybl";
       try { navigator.clipboard.writeText(t); } catch (e) {}
       cp.textContent = "Copied ✓"; setTimeout(function () { cp.textContent = "Copy"; }, 1500);
-      toast("UPI ID copied: ambika@upi");
+      toast("UPI ID copied: 7737014301@ybl");
     });
   }
+  function ensureRazorpay(cb) {
+    if (window.Razorpay) { cb(); return; }
+    var s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = function () { cb(); };
+    s.onerror = function () { toast("Payment window load nahi hua — internet check karo"); };
+    document.head.appendChild(s);
+  }
   function confirmPay() {
+    if (payState.method === "cod") { finalizeOrder("COD", "Pending COD", ""); return; }
+    startRazorpay();
+  }
+  function startRazorpay() {
+    var amt = payState.total, btn = el("pay-confirm");
+    if (btn) { btn.disabled = true; btn.style.opacity = ".7"; }
+    function reset() { if (btn) { btn.disabled = false; btn.style.opacity = ""; } }
+    fetch("/api/razorpay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: amt }) })
+      .then(function (r) { return r.json(); })
+      .then(function (o) {
+        reset();
+        if (!o || !o.id) { toast(o && o.error ? o.error : "Payment shuru nahi hua, dobara try karo"); return; }
+        ensureRazorpay(function () {
+          var u = (payState.payload && payState.payload.user) || {};
+          var rzp = new window.Razorpay({
+            key: o.keyId, amount: o.amount, currency: o.currency || "INR", order_id: o.id,
+            name: "Ambika Flowers", description: "Order Payment", image: "logo.png",
+            prefill: { name: u.name || "", contact: (u.phone || "").replace(/\D/g, ""), email: u.email || "" },
+            theme: { color: "#e84393" },
+            handler: function (resp) {
+              fetch("/api/razorpay/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(resp) })
+                .then(function (r) { return r.json(); })
+                .then(function (v) {
+                  if (v && v.ok) finalizeOrder("Online (Razorpay)", "Paid", resp.razorpay_payment_id || "");
+                  else toast("Payment verify nahi hua — support se baat karo");
+                })
+                .catch(function () { finalizeOrder("Online (Razorpay)", "Paid", resp.razorpay_payment_id || ""); });
+            },
+            modal: { ondismiss: function () { toast("Payment cancel ho gaya"); } }
+          });
+          try { rzp.on("payment.failed", function () { toast("Payment fail ho gaya, dobara try karo"); }); } catch (e) {}
+          rzp.open();
+        });
+      })
+      .catch(function () { reset(); toast("Payment server tak nahi pahuncha, dobara try karo"); });
+  }
+  function finalizeOrder(methodName, paymentStatus, reference) {
     var p = payState.payload;
-    var method = payState.method;
-    var methodName = method === "card" ? "Card" : (method === "cod" ? "COD" : "UPI");
-    var isCod = method === "cod";
+    var isCod = methodName === "COD";
     var oid = "AMB-" + Math.floor(1000 + Math.random() * 9000);
     var now = Date.now();
     var order = {
       id: oid, customer: (p.user && p.user.name) || "Guest", phone: (p.user && p.user.phone) || "",
       items: p.items, product: p.items.length === 1 ? p.items[0].name : (p.items[0].name + " +" + (p.items.length - 1) + " more"),
       amount: payState.total, statusIdx: 0, status: "Order Received",
-      method: methodName, paymentStatus: isCod ? "Pending COD" : "Paid",
+      reference: reference, method: methodName, paymentStatus: paymentStatus,
       deliveryDate: (el("pay-date") && el("pay-date").value) || "", slot: (el("pay-slot") && el("pay-slot").value) || "",
       address: (el("pay-addr") && el("pay-addr").value.trim()) || "", gift: (el("pay-gift") && el("pay-gift").value.trim()) || "",
+      customization: (el("pay-custom") && el("pay-custom").value.trim()) || "",
       deliveryFee: payState.deliveryFee || 0, deliveryZone: payState.deliveryZone || "",
       placedTs: now, date: new Date(now).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }), track: ""
     };
     var orders = load(ORDERS_KEY) || [];
     orders.unshift(order); save(ORDERS_KEY, orders);
+    // Save the order to the shared database so it shows in the admin panel (any device)
+    try { fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) }).catch(function () {}); } catch (e) {}
+    // Save this delivery address to the customer's profile (so it's pre-filled next time)
+    try {
+      var ou = p.user || {};
+      if ((ou.email || ou.phone) && order.address) {
+        fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ou.id, name: ou.name, email: ou.email, phone: ou.phone, address: order.address }) }).catch(function () {});
+        var uu = load("ambika_user") || {}; uu.address = order.address; save("ambika_user", uu);
+      }
+    } catch (e) {}
     // reflect in tracking + clear cart
     try { logActivity("order", "✅", ((p.user && p.user.name) ? p.user.name.split(" ")[0] : "Guest") + " placed order " + oid + " (₹" + payState.total + ", " + methodName + ")"); } catch (e) {}
     try { cartSnapshot([]); } catch (e) {}
@@ -1292,11 +1388,15 @@
   window.AmbikaPay = {
     openCheckout: function (payload, onComplete) {
       injectPay();
-      payState = { method: "upi", payload: payload, onComplete: onComplete, total: 0 };
+      payState = { method: "upi", payload: payload, onComplete: onComplete, total: 0, comingSoon: false };
       renderPay();
       el("af-pay").classList.add("open"); el("af-pay-ov").classList.add("open");
       // Auto-detect the customer's home location first, then refine the delivery charge
       if (detectedKm == null) setTimeout(function () { detectDeliveryLocation(true); }, 400);
+      // If "Coming Soon" mode is on, restrict checkout to Cash on Delivery only
+      fetch("/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).then(function (s) {
+        if (s && s.comingSoon) { payState.comingSoon = true; payState.method = "cod"; renderPay(); }
+      }).catch(function () {});
     }
   };
 
@@ -1404,11 +1504,56 @@
     els.forEach(function (e, i) { e.classList.add("ak-reveal"); e.style.transitionDelay = ((i % 6) * 0.04) + "s"; io.observe(e); });
   }
 
+  /* ---- Live prices from the shared database (admin edits reflect here) ----
+     When the admin turns ON "Coming Soon" mode (global setting), every price on
+     the storefront is replaced with "Coming Soon" (works on all card layouts,
+     mobile + PC). When OFF, live prices from the database are shown as usual. */
+  function applyComingSoonSweep() {
+    // Replace every visible price with "Coming Soon" (all card layouts, mobile + PC)
+    [".product-price", ".price-current", ".bs-card-price", ".verm-price"].forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (el) { el.textContent = "Coming Soon"; });
+    });
+    // Hide struck-through MRP + discount badges (they look odd next to "Coming Soon")
+    [".price-original", ".price-off", ".bs-card-old", ".bs-card-off"].forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (el) { el.style.display = "none"; });
+    });
+    document.querySelectorAll(".product-card").forEach(function (card) { card.setAttribute("data-price", 0); });
+  }
+  // Run the sweep now and a few more times, so late-built sliders (bestsellers,
+  // vermala) also get caught no matter when they render.
+  function applyComingSoonRepeat() {
+    applyComingSoonSweep();
+    setTimeout(applyComingSoonSweep, 500);
+    setTimeout(applyComingSoonSweep, 1500);
+  }
+  function syncStorefrontPrices() {
+    var pSettings = fetch("/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
+    var pProducts = fetch("/api/products").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
+    Promise.all([pSettings, pProducts]).then(function (res) {
+      var settings = res[0] || {}, list = res[1] || [];
+      if (settings.comingSoon) { applyComingSoonRepeat(); return; }   // Coming Soon mode ON
+      if (!Array.isArray(list) || !list.length) return;
+      var byName = {};
+      list.forEach(function (p) { if (p && p.title) byName[String(p.title).trim().toLowerCase()] = p; });
+      document.querySelectorAll(".product-card").forEach(function (card) {
+        var nm = card.getAttribute("data-name");
+        if (!nm) { var nel = card.querySelector(".product-name"); nm = nel ? nel.textContent : ""; }
+        var p = byName[String(nm).trim().toLowerCase()]; if (!p) return;
+        var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : p.price;
+        var money = "₹" + Number(dp).toLocaleString("en-IN");
+        var pe = card.querySelector(".product-price"); if (pe) pe.textContent = money;
+        var cur = card.querySelector(".price-current"); if (cur) cur.textContent = money;
+        card.setAttribute("data-price", dp);
+      });
+    }).catch(function () {});
+  }
+
   function wire() {
     injectUI();
     logPageView();
     wireSearch();
     renderCustomProducts();
+    syncStorefrontPrices();
     initReveal();
     // live-add products created in the admin (other tab)
     window.addEventListener("storage", function (e) { if (e.key === "ambika_products") renderCustomProducts(); });

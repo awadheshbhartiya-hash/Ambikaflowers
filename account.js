@@ -71,7 +71,7 @@
           '</div>' +
         '</div>';
     return '<div class="order-card rise" style="animation-delay:' + (idx * 0.08) + 's">' +
-      '<div class="oc-head"><div class="oc-id">' + esc(o.id) + '<small>Placed on ' + esc(o.date) + payTag + '</small></div><div class="oc-amt">' + inr(o.amount) + '</div></div>' +
+      '<div class="oc-head"><div class="oc-id">' + esc(o.id) + '<small>Placed on ' + esc(o.date) + payTag + '</small></div><div class="oc-amt">Coming Soon</div></div>' +
       '<div class="oc-body"><div class="oc-thumbs">' + thumbs + '</div>' +
         '<div class="oc-addr"><b>Deliver to:</b><br>' + esc(o.address) + '</div>' +
         '<button class="oc-track-btn" data-track="' + o.id + '">Track Status</button>' +
