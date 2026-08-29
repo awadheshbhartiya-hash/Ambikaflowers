@@ -1289,6 +1289,13 @@
     document.head.appendChild(s);
   }
   function confirmPay() {
+    // Delivery address is compulsory
+    var addrEl = el("pay-addr");
+    if (!addrEl || !addrEl.value.trim()) {
+      toast("Delivery address daalna zaroori hai 🌸");
+      if (addrEl) { addrEl.focus(); addrEl.style.borderColor = "#e84393"; addrEl.scrollIntoView({ behavior: "smooth", block: "center" }); }
+      return;
+    }
     if (payState.method === "cod") { finalizeOrder("COD", "Pending COD", ""); return; }
     startRazorpay();
   }

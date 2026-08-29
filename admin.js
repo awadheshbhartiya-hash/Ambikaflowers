@@ -291,7 +291,7 @@
   }
   var _lastOrderN = -1;
   function syncFromServer(initial) {
-    apiGet("/api/products").then(function (d) { if (Array.isArray(d) && d.length) { products = d; if (current === "products") go("products"); } }).catch(function () {});
+    apiGet("/api/products").then(function (d) { if (Array.isArray(d) && d.length) { products = d; if (initial && current === "products") go("products"); } }).catch(function () {});
     apiGet("/api/orders").then(function (d) {
       if (!Array.isArray(d)) return;
       orders = d.map(normalizeOrder);
