@@ -1547,20 +1547,32 @@
     var grid = document.getElementById("product-grid") || document.getElementById("productGrid");
     if (!pageCat || !grid || !Array.isArray(list)) return false;
     var items = list.filter(function (p) { return p && String(p.category || "") === pageCat; });
+    var fbMap = {};   // id -> DB base64 image, used only if the high-res file fails to load
     grid.innerHTML = items.map(function (p) {
       var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : (Number(p.price) || 0);
       var priceHtml = comingSoon ? "Coming Soon" : ("₹" + Number(dp).toLocaleString("en-IN"));
       var sub = String(p.tags || "").split(/[ ,]+/)[0].toLowerCase() || "all";
       var subLabel = sub && sub !== "all" ? (sub.charAt(0).toUpperCase() + sub.slice(1) + " " + pageCat) : ("Fresh " + pageCat);
-      var img = p.image || "";
-      return '<div class="product-card" data-sub="' + esc(sub) + '" data-price="' + dp + '" data-name="' + esc(p.title || "") + '" data-cust="' + esc(String(p.id)) + '">' +
-        '<div class="product-img-wrap"><img class="product-img" src="' + esc(img) + '" alt="' + esc(p.title || "") + '" loading="lazy" onerror="this.style.visibility=\'hidden\'"></div>' +
+      var pid = String(p.id);
+      var hi = IMG_MAP[p.title] || "";          // high-res photo file
+      var base = p.image || "";                 // DB base64 (thumbnail)
+      var src = hi || base;
+      var onerr;
+      if (hi && base && hi !== base) {
+        fbMap[pid] = base;
+        onerr = "if(window.AMBIKA_FB){var f=window.AMBIKA_FB['" + pid + "'];if(f){this.onerror=null;this.src=f;return;}}this.style.visibility='hidden'";
+      } else {
+        onerr = "this.style.visibility='hidden'";
+      }
+      return '<div class="product-card" data-sub="' + esc(sub) + '" data-price="' + dp + '" data-name="' + esc(p.title || "") + '" data-cust="' + esc(pid) + '">' +
+        '<div class="product-img-wrap"><img class="product-img" src="' + esc(src) + '" alt="' + esc(p.title || "") + '" loading="lazy" onerror="' + onerr + '"></div>' +
         '<div class="product-info"><div class="product-sub-tag">' + esc(subLabel) + '</div>' +
         '<div class="product-name">' + esc(p.title || "") + '</div>' +
         '<div class="product-price">' + priceHtml + '</div>' +
         '<button class="add-to-cart">Add to Cart</button></div>' +
       '</div>';
     }).join("");
+    window.AMBIKA_FB = fbMap;
     var cnt = document.getElementById("product-count");
     if (cnt) cnt.textContent = "Showing all " + items.length + " products";
     return true;
