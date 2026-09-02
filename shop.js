@@ -8,7 +8,7 @@
   /* API base — the Railway backend URL for the Vercel-hosted frontend.
      Leave "" for same-origin (works when server.js serves the site directly / localhost).
      After deploying the backend, set the Railway URL below (or window.AMBIKA_API_BASE). */
-  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production-a69a.up.railway.app" /* RAILWAY_URL */).replace(/\/+$/, "");
+  var API_BASE = (window.AMBIKA_API_BASE || "" /* RAILWAY_URL — same-origin; Vercel proxies /api/* to Railway (see vercel.json) */).replace(/\/+$/, "");
 
   /* One-time reset: wipe demo/seed data so the store starts LIVE at zero.
      Real products you uploaded (custom) are preserved. Runs once per browser. */
@@ -809,7 +809,7 @@
 
   /* API base — same as the first IIFE (separate scope, so redeclared here).
      Set the Railway URL below (or window.AMBIKA_API_BASE); "" = same-origin. */
-  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production-a69a.up.railway.app" /* RAILWAY_URL */).replace(/\/+$/, "");
+  var API_BASE = (window.AMBIKA_API_BASE || "" /* RAILWAY_URL — same-origin; Vercel proxies /api/* to Railway (see vercel.json) */).replace(/\/+$/, "");
 
   function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
   function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }

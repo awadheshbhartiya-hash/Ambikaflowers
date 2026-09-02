@@ -7,7 +7,7 @@
   /* API base — the Railway backend URL for the Vercel-hosted admin panel.
      Leave "" for same-origin (works when server.js serves the site / localhost).
      After deploying the backend, set the Railway URL below (or window.AMBIKA_API_BASE). */
-  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production-a69a.up.railway.app" /* RAILWAY_URL */).replace(/\/+$/, "");
+  var API_BASE = (window.AMBIKA_API_BASE || "" /* RAILWAY_URL — same-origin; Vercel proxies /api/* to Railway (see vercel.json) */).replace(/\/+$/, "");
 
   /* One-time reset: clear demo/seed data so the panel starts LIVE at zero.
      Real products you uploaded (custom) are preserved. Runs once per browser. */
