@@ -66,6 +66,17 @@ async function sbDelete(table, filter) {
   if (!r.ok) throw new Error("sbDelete " + r.status);
   return true;
 }
+// Upsert many rows in small chunks (base64 product images make payloads large)
+async function sbUpsertBatch(table, rows, chunk) {
+  chunk = chunk || 15;
+  for (let i = 0; i < rows.length; i += chunk) { await sbUpsert(table, rows.slice(i, i + chunk)); }
+  return true;
+}
+// Shape a product list into { id, data } rows for the Supabase "products" table
+function productRows(list) {
+  return (list || []).filter(function (p) { return p && p.id != null; })
+    .map(function (p) { return { id: String(p.id), data: p, updated_at: Date.now() }; });
+}
 
 /* ---------- password hashing (built-in crypto, no dependency) ---------- */
 function hashPw(pw) {
@@ -219,8 +230,16 @@ async function loadFromSupabase() {
     const st = await sbGet("settings?id=eq.global&select=data");
     if (Array.isArray(st) && st[0] && st[0].data) store.settings = Object.assign({}, store.settings, st[0].data);
   } catch (e) { console.error("SB settings load failed:", e.message); }
+  try {
+    const prods = await sbGet("products?select=data");
+    if (Array.isArray(prods) && prods.length) {
+      store.products = prods.map(function (r) { return r.data; }).filter(Boolean);   // Supabase = source of truth
+    } else if (Array.isArray(store.products) && store.products.length) {
+      await sbUpsertBatch("products", productRows(store.products));                    // first run → seed the table once
+    }
+  } catch (e) { console.error("SB products load failed:", e.message); }
   save();
-  console.log("Supabase loaded: " + store.customers.length + " customers, " + store.orders.length + " orders");
+  console.log("Supabase loaded: " + store.customers.length + " customers, " + store.orders.length + " orders, " + store.products.length + " products");
 }
 
 /* ---------- API ---------- */
@@ -281,26 +300,41 @@ app.post("/api/admin/login", (req, res) => {
   res.json({ token: makeAdminToken(), ttl: ADMIN_TTL });
 });
 
-// PRODUCTS (from the bundled catalogue; admin edits are kept in memory + JSON)
+// PRODUCTS — stored in Supabase so admin edits (price/name/add/delete) are permanent
 app.get("/api/products", (req, res) => res.json(store.products));
-app.put("/api/products", requireAdmin, (req, res) => {
+app.put("/api/products", requireAdmin, async (req, res) => {          // admin bulk save (full list)
   if (!Array.isArray(req.body)) return res.status(400).json({ error: "expected array" });
-  store.products = req.body; save(); res.json({ ok: true, count: store.products.length });
+  store.products = req.body; save();
+  if (SB_ON) {
+    try {
+      const rows = productRows(store.products);
+      await sbUpsertBatch("products", rows);                          // insert/update all
+      const ids = rows.map(function (r) { return r.id; });
+      if (ids.length) await sbDelete("products", "id=not.in.(" + ids.join(",") + ")");   // remove deleted ones
+    } catch (e) { console.error("SB products bulk save failed:", e.message); }
+  }
+  res.json({ ok: true, count: store.products.length });
 });
-app.post("/api/products", requireAdmin, (req, res) => {
+app.post("/api/products", requireAdmin, async (req, res) => {         // add one
   const p = req.body || {}; if (!p.id) p.id = rid("PRD");
-  store.products.unshift(p); save(); res.json(p);
+  store.products.unshift(p); save();
+  if (SB_ON) { try { await sbUpsert("products", productRows([p])); } catch (e) { console.error("SB product add failed:", e.message); } }
+  res.json(p);
 });
-app.put("/api/products/:id", requireAdmin, (req, res) => {
+app.put("/api/products/:id", requireAdmin, async (req, res) => {      // update one
   const i = store.products.findIndex(p => String(p.id) === req.params.id);
   if (i < 0) return res.status(404).json({ error: "not found" });
   store.products[i] = Object.assign({}, store.products[i], req.body, { id: store.products[i].id });
-  save(); res.json(store.products[i]);
+  save();
+  if (SB_ON) { try { await sbUpsert("products", productRows([store.products[i]])); } catch (e) { console.error("SB product update failed:", e.message); } }
+  res.json(store.products[i]);
 });
-app.delete("/api/products/:id", requireAdmin, (req, res) => {
+app.delete("/api/products/:id", requireAdmin, async (req, res) => {   // delete one
   const before = store.products.length;
   store.products = store.products.filter(p => String(p.id) !== req.params.id);
-  save(); res.json({ ok: true, removed: before - store.products.length });
+  save();
+  if (SB_ON) { try { await sbDelete("products", "id=eq." + encodeURIComponent(req.params.id)); } catch (e) { console.error("SB product delete failed:", e.message); } }
+  res.json({ ok: true, removed: before - store.products.length });
 });
 
 // ORDERS (stored in Supabase so they are permanent)
