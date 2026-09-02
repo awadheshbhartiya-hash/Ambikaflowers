@@ -432,12 +432,20 @@
       '<button class="btn btn-primary" onclick="ADMIN.toggleComingSoon()">' + (on ? '✅ Turn OFF — Show Prices' : '🏷️ Turn ON — Coming Soon') + '</button>' +
       '</div>';
   }
+  function hdBanner() {
+    return '<div class="card" id="hdCard" style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-left:5px solid #6c5ce7;">' +
+      '<div><div style="font-weight:800;font-size:16px;color:var(--ink);">🖼️ Product Photos — HD Upgrade</div>' +
+      '<div class="sub" style="margin:4px 0 0;">Ek baar click karo — saari product photos sharp (HD) ho jayengi. Prices/stock kuch nahi badlega.</div></div>' +
+      '<button class="btn btn-primary" id="hdBtn" onclick="ADMIN.upgradePhotos()">✨ Upgrade Photos to HD</button>' +
+      '</div>';
+  }
   pages.dashboard = function () {
     var st = computeStats();
     return '' +
       '<div class="page-head"><div><h1>Dashboard</h1><p>Welcome back, Keshav — here’s today at Ambika Flowers 🌸</p></div>' +
       '<button class="btn btn-primary" onclick="ADMIN.go(\'products\')">＋ Add Product</button></div>' +
       comingSoonBanner() +
+      hdBanner() +
       '<div class="grid g-4">' +
         metric("pink", "💰", "Total Revenue", inr(st.revenue), "up", "live from orders") +
         metric("green", "🛒", "Today’s Sales", inr(st.todaySales), "up", "orders placed today") +
@@ -841,6 +849,38 @@
   /* ------------------------------------------------------------------ */
   window.ADMIN = {
     go: go,
+    upgradePhotos: function () {
+      var btn = document.getElementById("hdBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "⏳ HD photos load ho rahe hain…"; }
+      if (typeof toast === "function") toast("HD photos taiyaar kiye ja rahe hain…");
+      fetch("/catalog-seed.json?v=" + Date.now())
+        .then(function (r) { if (!r.ok) return Promise.reject(r.status); return r.json(); })
+        .then(function (seed) {
+          var list = Array.isArray(seed) ? seed : (seed.products || []);
+          var imgById = {}, imgByName = {};
+          list.forEach(function (p) {
+            if (!p || !p.image) return;
+            if (p.id != null) imgById[String(p.id)] = p.image;
+            var nm = (p.title || p.name || "").trim().toLowerCase();
+            if (nm) imgByName[nm] = p.image;
+          });
+          var n = 0;
+          products.forEach(function (p) {
+            var nm = (p.title || p.name || "").trim().toLowerCase();
+            var hd = imgById[String(p.id)] || imgByName[nm];
+            if (hd && hd !== p.image) { p.image = hd; n++; }   // ONLY the photo changes
+          });
+          saveProducts();                                       // persist to the live database
+          if (typeof toast === "function") toast("✅ " + n + " photos HD ho gayi! Website refresh karo.");
+          notify("🖼️ " + n + " product photos upgraded to HD");
+          if (btn) { btn.disabled = false; btn.textContent = "✅ Done — " + n + " HD photos"; }
+          if (current === "products") go("products");
+        })
+        .catch(function () {
+          if (typeof toast === "function") toast("⚠️ Photos load nahi ho paayi — thodi der baad try karo");
+          if (btn) { btn.disabled = false; btn.textContent = "✨ Upgrade Photos to HD"; }
+        });
+    },
     toggleComingSoon: function () {
       var next = !siteSettings.comingSoon;
       apiSend("PUT", "/api/settings", { comingSoon: next })

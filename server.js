@@ -247,7 +247,7 @@ async function loadFromSupabase() {
 }
 
 /* ---------- API ---------- */
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "12mb" }));   // HD product images (base64) need extra room
 
 // AUTH — real signup / login with hashed passwords (stored in Supabase)
 app.post("/api/auth/signup", async (req, res) => {
