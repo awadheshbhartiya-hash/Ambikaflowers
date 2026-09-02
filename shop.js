@@ -5,6 +5,11 @@
 (function () {
   "use strict";
 
+  /* API base — the Railway backend URL for the Vercel-hosted frontend.
+     Leave "" for same-origin (works when server.js serves the site directly / localhost).
+     After deploying the backend, set the Railway URL below (or window.AMBIKA_API_BASE). */
+  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production-a69a.up.railway.app" /* RAILWAY_URL */).replace(/\/+$/, "");
+
   /* One-time reset: wipe demo/seed data so the store starts LIVE at zero.
      Real products you uploaded (custom) are preserved. Runs once per browser. */
   try {
@@ -552,7 +557,7 @@
     // Real login — verify the password against the database
     var sbtn = document.querySelector("#ak-pane-pw .ak-submit");
     if (sbtn) { sbtn.disabled = true; sbtn.style.opacity = ".7"; }
-    fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id, password: pw }) })
+    fetch(API_BASE + "/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id, password: pw }) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; }
@@ -590,7 +595,7 @@
     // Real signup — create the account in the database (password is hashed server-side)
     var btn = document.querySelector("#ak-signup-form .ak-submit");
     if (btn) { btn.disabled = true; btn.style.opacity = ".7"; }
-    fetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name, email: email, phone: phone, password: pw }) })
+    fetch(API_BASE + "/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name, email: email, phone: phone, password: pw }) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (btn) { btn.disabled = false; btn.style.opacity = ""; }
@@ -801,6 +806,11 @@
    ========================================================================== */
 (function () {
   "use strict";
+
+  /* API base — same as the first IIFE (separate scope, so redeclared here).
+     Set the Railway URL below (or window.AMBIKA_API_BASE); "" = same-origin. */
+  var API_BASE = (window.AMBIKA_API_BASE || "https://ambikaflowers-production-a69a.up.railway.app" /* RAILWAY_URL */).replace(/\/+$/, "");
+
   function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
   function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function el(id) { return document.getElementById(id); }
@@ -1303,7 +1313,7 @@
     var amt = payState.total, btn = el("pay-confirm");
     if (btn) { btn.disabled = true; btn.style.opacity = ".7"; }
     function reset() { if (btn) { btn.disabled = false; btn.style.opacity = ""; } }
-    fetch("/api/razorpay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: amt }) })
+    fetch(API_BASE + "/api/razorpay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: amt }) })
       .then(function (r) { return r.json(); })
       .then(function (o) {
         reset();
@@ -1316,7 +1326,7 @@
             prefill: { name: u.name || "", contact: (u.phone || "").replace(/\D/g, ""), email: u.email || "" },
             theme: { color: "#e84393" },
             handler: function (resp) {
-              fetch("/api/razorpay/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(resp) })
+              fetch(API_BASE + "/api/razorpay/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(resp) })
                 .then(function (r) { return r.json(); })
                 .then(function (v) {
                   if (v && v.ok) finalizeOrder("Online (Razorpay)", "Paid", resp.razorpay_payment_id || "");
@@ -1351,12 +1361,12 @@
     var orders = load(ORDERS_KEY) || [];
     orders.unshift(order); save(ORDERS_KEY, orders);
     // Save the order to the shared database so it shows in the admin panel (any device)
-    try { fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) }).catch(function () {}); } catch (e) {}
+    try { fetch(API_BASE + "/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(order) }).catch(function () {}); } catch (e) {}
     // Save this delivery address to the customer's profile (so it's pre-filled next time)
     try {
       var ou = p.user || {};
       if ((ou.email || ou.phone) && order.address) {
-        fetch("/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ou.id, name: ou.name, email: ou.email, phone: ou.phone, address: order.address }) }).catch(function () {});
+        fetch(API_BASE + "/api/customers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ou.id, name: ou.name, email: ou.email, phone: ou.phone, address: order.address }) }).catch(function () {});
         var uu = load("ambika_user") || {}; uu.address = order.address; save("ambika_user", uu);
       }
     } catch (e) {}
@@ -1401,7 +1411,7 @@
       // Auto-detect the customer's home location first, then refine the delivery charge
       if (detectedKm == null) setTimeout(function () { detectDeliveryLocation(true); }, 400);
       // If "Coming Soon" mode is on, restrict checkout to Cash on Delivery only
-      fetch("/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).then(function (s) {
+      fetch(API_BASE + "/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).then(function (s) {
         if (s && s.comingSoon) { payState.comingSoon = true; payState.method = "cod"; renderPay(); }
       }).catch(function () {});
     }
@@ -1534,8 +1544,8 @@
     setTimeout(applyComingSoonSweep, 1500);
   }
   function syncStorefrontPrices() {
-    var pSettings = fetch("/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
-    var pProducts = fetch("/api/products").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
+    var pSettings = fetch(API_BASE + "/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
+    var pProducts = fetch(API_BASE + "/api/products").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
     Promise.all([pSettings, pProducts]).then(function (res) {
       var settings = res[0] || {}, list = res[1] || [];
       if (settings.comingSoon) { applyComingSoonRepeat(); return; }   // Coming Soon mode ON

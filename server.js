@@ -29,6 +29,17 @@ const AUTH_SECRET = process.env.AUTH_SECRET || SUPABASE_KEY || "ambika-flowers-s
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+/* CORS — let the Vercel-hosted static frontend call this API cross-origin.
+   Lock it down by setting CORS_ORIGIN in Railway to your Vercel domain
+   (e.g. https://ambikaflowers.vercel.app); defaults to "*" so it never breaks. */
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN || "*");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 /* ---------- Supabase REST helpers (server uses the SECRET key → bypasses RLS) ---------- */
 function sbHeaders(extra) {
   return Object.assign({ "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" }, extra || {});
