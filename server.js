@@ -384,7 +384,7 @@ app.post("/api/razorpay/verify", (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: String(e && e.message || e) }); }
 });
 
-app.get("/api/health", (req, res) => res.json({ ok: true, dataDir: DATA_DIR, supabase: SB_ON, razorpay: !!RZP_KEY_SECRET, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
+app.get("/api/health", (req, res) => res.json({ ok: true, build: "2026-09-02-secure-cors", cors: true, adminAuth: ADMIN_CONFIGURED, dataDir: DATA_DIR, supabase: SB_ON, razorpay: !!RZP_KEY_SECRET, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
 
 /* ---------- static site ---------- */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));
