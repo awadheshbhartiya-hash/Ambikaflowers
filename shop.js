@@ -1443,8 +1443,9 @@
 
   /* ---------------- Show admin-added products on the storefront ---------------- */
   function pageCategory() {
-    var f = (location.pathname.split("/").pop() || "").toLowerCase();
-    var map = { "bouquet.html": "Bouquet", "hamper.html": "Hamper", "vermala.html": "Vermala", "flower-jewelry.html": "Flower Jewelry" };
+    // Works for both "/bouquet.html" and the clean "/bouquet" URL (Vercel cleanUrls)
+    var f = (location.pathname.split("/").pop() || "").toLowerCase().replace(/\.html$/, "");
+    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry" };
     return map[f] || null;
   }
   function homeCard(p, dp, img) {
