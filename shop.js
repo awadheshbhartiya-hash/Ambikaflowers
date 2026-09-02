@@ -521,9 +521,11 @@
     setTimeout(function () { if (span.parentNode) span.parentNode.removeChild(span); }, 650);
   }
 
-  function setErr(fieldId, on) {
+  function setErr(fieldId, on, msg) {
     var wrap = document.querySelector('[data-f="' + fieldId + '"]');
-    if (wrap) wrap.classList.toggle("err", !!on);
+    if (!wrap) return;
+    wrap.classList.toggle("err", !!on);
+    if (on && msg) { var m = wrap.querySelector(".ak-err-msg"); if (m) m.textContent = msg; }
   }
   function clearErrors() { document.querySelectorAll(".ak-field.err").forEach(function (f) { f.classList.remove("err"); }); }
   function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
@@ -546,7 +548,7 @@
     var ok = true;
     var idOk = isEmail(id) || isPhone(id);
     setErr("l-id", !idOk); if (!idOk) ok = false;
-    setErr("l-pw", pw.length < 6); if (pw.length < 6) ok = false;
+    setErr("l-pw", pw.length < 6, "Password must be at least 6 characters"); if (pw.length < 6) ok = false;
     if (!ok) return;
     // Real login — verify the password against the database
     var sbtn = document.querySelector("#ak-pane-pw .ak-submit");
@@ -555,7 +557,7 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; }
-        if (!res.ok) { setErr("l-pw", true); toast((res.d && res.d.error) || "Login nahi hua"); return; }
+        if (!res.ok) { var em = (res.d && res.d.error) || "Login nahi hua"; setErr("l-pw", true, em); toast(em); return; }
         finishAuth(Object.assign({ role: "customer" }, res.d.user), res.d.token);
         toast("Welcome back, " + firstName() + "! 🌸", true);
       })
