@@ -72,10 +72,14 @@ async function sbUpsertBatch(table, rows, chunk) {
   for (let i = 0; i < rows.length; i += chunk) { await sbUpsert(table, rows.slice(i, i + chunk)); }
   return true;
 }
-// Shape a product list into { id, data } rows for the Supabase "products" table
+// Shape a product list into rows for the Supabase "products" table.
+// name + price are stored as their own columns (easy to read in the Supabase table),
+// while the full product object stays in the jsonb "data" column.
 function productRows(list) {
   return (list || []).filter(function (p) { return p && p.id != null; })
-    .map(function (p) { return { id: String(p.id), data: p, updated_at: Date.now() }; });
+    .map(function (p) {
+      return { id: String(p.id), name: (p.title || p.name || ""), price: Number(p.price) || 0, data: p, updated_at: Date.now() };
+    });
 }
 
 /* ---------- password hashing (built-in crypto, no dependency) ---------- */

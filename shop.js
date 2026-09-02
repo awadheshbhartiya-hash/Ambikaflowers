@@ -773,11 +773,24 @@
   };
 
   /* ---------------- Boot ---------------- */
+  /* Remove old/removed category links (Car Decor, Event Decor, Birthday, Anniversary,
+     Balloon) from the nav + anywhere on every page — one place fixes the whole site. */
+  function hideDeadCategories() {
+    var dead = ["car-decor", "event-decor", "birthday.html", "anniversary.html", "balloon.html"];
+    var els = document.querySelectorAll("a[href], [onclick]");
+    els.forEach(function (el) {
+      var s = (el.getAttribute("href") || "") + " " + (el.getAttribute("onclick") || "");
+      for (var i = 0; i < dead.length; i++) {
+        if (s.indexOf(dead[i]) !== -1) { var item = el.closest("li") || el; if (item && item.parentNode) item.parentNode.removeChild(item); return; }
+      }
+    });
+  }
   function boot() {
     injectUI();
     wireHeader();
     wireAddButtons();
     updateBadges();
+    try { hideDeadCategories(); } catch (e) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
@@ -1407,13 +1420,8 @@
     q = (q || "").toLowerCase().trim();
     if (!q) return;
     var map = [
-      [/balloon/, "balloon.html"],
       [/jewel|jewellery|haath|kaleera|nath|bangle/, "flower-jewelry.html"],
       [/vermala|varmala|jaimala|jaymala|garland|\bmala\b/, "vermala.html"],
-      [/car|bonnet/, "car-decor.html"],
-      [/event|stage|mandap|haldi|mehndi|mehendi|welcome|decor/, "event-decor.html"],
-      [/birthday|cake/, "birthday.html"],
-      [/anniversar|love|romantic/, "anniversary.html"],
       [/hamper|basket|chocolate|choco|dry ?fruit|gift/, "hamper.html"],
       [/bouquet|flower|rose|bunch|bloom|sunflower|lily|lilies|orchid|carnation|mix|money/, "bouquet.html"]
     ];
@@ -1421,7 +1429,7 @@
     for (var i = 0; i < map.length; i++) {
       if (map[i][0].test(q)) { window.location.href = map[i][1]; return; }
     }
-    toast("No matching category for “" + q + "” — try ‘bouquet’, ‘balloon’, ‘hamper’… 🌸");
+    toast("No matching category for “" + q + "” — try ‘bouquet’, ‘hamper’, ‘vermala’… 🌸");
   }
   function wireSearch() {
     document.querySelectorAll(".search-bar, .mob-search-bar").forEach(function (box) {
@@ -1436,7 +1444,7 @@
   /* ---------------- Show admin-added products on the storefront ---------------- */
   function pageCategory() {
     var f = (location.pathname.split("/").pop() || "").toLowerCase();
-    var map = { "bouquet.html": "Bouquet", "hamper.html": "Hamper", "vermala.html": "Vermala", "car-decor.html": "Car Decor", "event-decor.html": "Event Decor", "birthday.html": "Birthday", "anniversary.html": "Anniversary", "balloon.html": "Balloon", "flower-jewelry.html": "Flower Jewelry" };
+    var map = { "bouquet.html": "Bouquet", "hamper.html": "Hamper", "vermala.html": "Vermala", "flower-jewelry.html": "Flower Jewelry" };
     return map[f] || null;
   }
   function homeCard(p, dp, img) {
