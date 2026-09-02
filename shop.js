@@ -1535,12 +1535,42 @@
     setTimeout(applyComingSoonSweep, 500);
     setTimeout(applyComingSoonSweep, 1500);
   }
+  /* ---- Category pages: build the product grid LIVE from the database ----
+     So whatever the admin has (add / edit / delete / price) is exactly what the
+     website shows. Runs only on bouquet/hamper/vermala/flower-jewelry pages. */
+  function renderCategoryGrid(list, comingSoon) {
+    var pageCat = pageCategory();
+    var grid = document.getElementById("product-grid") || document.getElementById("productGrid");
+    if (!pageCat || !grid || !Array.isArray(list)) return false;
+    var items = list.filter(function (p) { return p && String(p.category || "") === pageCat; });
+    grid.innerHTML = items.map(function (p) {
+      var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : (Number(p.price) || 0);
+      var priceHtml = comingSoon ? "Coming Soon" : ("₹" + Number(dp).toLocaleString("en-IN"));
+      var sub = String(p.tags || "").split(/[ ,]+/)[0].toLowerCase() || "all";
+      var subLabel = sub && sub !== "all" ? (sub.charAt(0).toUpperCase() + sub.slice(1) + " " + pageCat) : ("Fresh " + pageCat);
+      var img = p.image || "";
+      return '<div class="product-card" data-sub="' + esc(sub) + '" data-price="' + dp + '" data-name="' + esc(p.title || "") + '" data-cust="' + esc(String(p.id)) + '">' +
+        '<div class="product-img-wrap"><img class="product-img" src="' + esc(img) + '" alt="' + esc(p.title || "") + '" loading="lazy" onerror="this.style.visibility=\'hidden\'"></div>' +
+        '<div class="product-info"><div class="product-sub-tag">' + esc(subLabel) + '</div>' +
+        '<div class="product-name">' + esc(p.title || "") + '</div>' +
+        '<div class="product-price">' + priceHtml + '</div>' +
+        '<button class="add-to-cart">Add to Cart</button></div>' +
+      '</div>';
+    }).join("");
+    var cnt = document.getElementById("product-count");
+    if (cnt) cnt.textContent = "Showing all " + items.length + " products";
+    return true;
+  }
   function syncStorefrontPrices() {
     var pSettings = fetch(API_BASE + "/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
     var pProducts = fetch(API_BASE + "/api/products").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
     Promise.all([pSettings, pProducts]).then(function (res) {
       var settings = res[0] || {}, list = res[1] || [];
-      if (settings.comingSoon) { applyComingSoonRepeat(); return; }   // Coming Soon mode ON
+      var comingSoon = !!settings.comingSoon;
+      var didGrid = false;
+      try { didGrid = renderCategoryGrid(list, comingSoon); } catch (e) {}   // category pages → live from DB
+      if (comingSoon) { applyComingSoonRepeat(); return; }   // Coming Soon mode ON
+      if (didGrid) return;                                    // category grid already rendered from DB
       if (!Array.isArray(list) || !list.length) return;
       var byName = {};
       list.forEach(function (p) { if (p && p.title) byName[String(p.title).trim().toLowerCase()] = p; });
