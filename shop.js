@@ -542,13 +542,7 @@
     var id = document.getElementById("l-id").value.trim();
     var pw = document.getElementById("l-pw").value;
 
-    // --- Admin login (bypass customer email/phone regex) ---
-    if (id.toLowerCase() === "ambika" && pw === "ambika123") {
-      setErr("l-id", false); setErr("l-pw", false);
-      loginAsAdmin();
-      return;
-    }
-
+    // Admin logs in ONLY on the /admin page (server-verified). No admin shortcut here.
     var ok = true;
     var idOk = isEmail(id) || isPhone(id);
     setErr("l-id", !idOk); if (!idOk) ok = false;
@@ -566,18 +560,6 @@
         toast("Welcome back, " + firstName() + "! 🌸", true);
       })
       .catch(function () { if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; } toast("Server tak nahi pahuncha, dobara try karein"); });
-  }
-
-  /* ---- Admin authentication + redirect ---- */
-  function loginAsAdmin() {
-    try {
-      localStorage.setItem("ambika_admin_auth", "1");
-      localStorage.setItem("ambika_role", "admin");
-      localStorage.setItem("ambika_isLoggedIn", "true");
-    } catch (e) {}
-    finishAuth({ name: "Ambika Admin", email: "admin@ambikaflowers.in", phone: "", role: "admin" });
-    toast("Welcome Admin — opening dashboard… 🌸", true);
-    setTimeout(function () { window.location.href = "admin.html"; }, 900);
   }
 
   function onSignup(e) {
