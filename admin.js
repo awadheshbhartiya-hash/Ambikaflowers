@@ -272,8 +272,26 @@
     { id: "P163", title: "25th Anniversary Box", category: "Bouquet", price: 1499, discount: 0, stock: 25, tags: "anniversary-hamper", image: "products/WhatsApp Image 2026-08-20 at 12.42.38 PM.jpeg", custom: false }
   ];
   /* ---- Server API (small shared JSON database on the Railway backend) ---- */
-  function apiGet(p) { return fetch(API_BASE + p).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
-  function apiSend(method, p, body) { return fetch(API_BASE + p, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }); }
+  /* Admin session token — issued by POST /api/admin/login, sent on every request.
+     No password is ever stored in this file; only the short-lived signed token. */
+  var ADMIN_TOKEN_KEY = "ambika_admin_token";
+  var adminToken = "";
+  try { adminToken = localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch (e) {}
+  var _authBounced = false;
+  function authHeaders(extra) {
+    var h = extra || {};
+    if (adminToken) h["Authorization"] = "Bearer " + adminToken;
+    return h;
+  }
+  function onAuthFail(status) {
+    if (status !== 401 || _authBounced) return;   // token missing/expired → back to login
+    _authBounced = true;
+    try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch (e) {}
+    adminToken = "";
+    location.reload();
+  }
+  function apiGet(p) { return fetch(API_BASE + p, { headers: authHeaders() }).then(function (r) { if (!r.ok) { onAuthFail(r.status); return Promise.reject(r.status); } return r.json(); }); }
+  function apiSend(method, p, body) { return fetch(API_BASE + p, { method: method, headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(body) }).then(function (r) { if (!r.ok) { onAuthFail(r.status); return Promise.reject(r.status); } return r.json(); }); }
   function normalizeOrder(o) {
     if (o.statusIdx === undefined) o.statusIdx = FLORAL.indexOf(o.status) >= 0 ? FLORAL.indexOf(o.status) : 0;
     o.status = deriveStatus(o);
@@ -1120,9 +1138,6 @@
   /* ------------------------------------------------------------------ */
   /* LOGIN GATE                                                          */
   /* ------------------------------------------------------------------ */
-  var ADMIN_USER = "ambika";
-  var ADMIN_PASS = "ambika123";
-  var AUTH_KEY = "ambika_admin_auth";
   var booted = false;
 
   function showDashboard() {
@@ -1130,32 +1145,54 @@
     document.getElementById("app").style.display = "";
     if (!booted) { booted = true; boot(); }
   }
+  function setLoginErr(msg) {
+    var el = $("#loginErr");
+    if (!el) return;
+    if (msg) el.textContent = msg;
+    el.classList.add("show");
+  }
   function initLogin() {
-    // already logged in this browser?
-    var ok = false;
-    try { ok = localStorage.getItem(AUTH_KEY) === "1"; } catch (e) {}
-    if (ok) { showDashboard(); return; }
+    // A valid token from a previous login? Show the panel; any expired/invalid
+    // token is rejected server-side (401) and bounces back here automatically.
+    if (adminToken) { showDashboard(); return; }
 
     var form = $("#loginForm");
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var u = $("#loginUser").value.trim();
       var p = $("#loginPass").value;
-      if (u === ADMIN_USER && p === ADMIN_PASS) {
-        try { localStorage.setItem(AUTH_KEY, "1"); } catch (e) {}
-        $("#loginErr").classList.remove("show");
-        showDashboard();
-      } else {
-        $("#loginErr").classList.add("show");
-        $("#loginPass").value = "";
-        $("#loginPass").focus();
-      }
+      var btn = form.querySelector('button[type="submit"], [type="submit"], button');
+      if (btn) btn.disabled = true;
+      fetch(API_BASE + "/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: p })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d || {} }; }); })
+        .then(function (res) {
+          if (btn) btn.disabled = false;
+          if (res.ok && res.d.token) {
+            adminToken = res.d.token;
+            try { localStorage.setItem(ADMIN_TOKEN_KEY, adminToken); } catch (e) {}
+            $("#loginErr").classList.remove("show");
+            showDashboard();
+          } else {
+            setLoginErr(res.d.error || "Incorrect username or password");
+            $("#loginPass").value = "";
+            $("#loginPass").focus();
+          }
+        })
+        .catch(function () {
+          if (btn) btn.disabled = false;
+          setLoginErr("Server se connect nahi ho paya. Thodi der baad try karein.");
+        });
     });
     setTimeout(function () { try { $("#loginUser").focus(); } catch (e) {} }, 100);
   }
 
   window.ADMIN_LOGOUT = function () {
-    try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
+    try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch (e) {}
+    adminToken = "";
     location.reload();
   };
 

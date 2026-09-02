@@ -35,7 +35,7 @@ const PORT = process.env.PORT || 3000;
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN || "*");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
@@ -85,6 +85,57 @@ function makeToken(id) {
   const ts = Date.now();
   const sig = crypto.createHmac("sha256", AUTH_SECRET).update(id + "|" + ts).digest("hex").slice(0, 32);
   return id + "." + ts + "." + sig;
+}
+
+/* ---------- ADMIN authentication (server-side; credentials live in Railway env vars, NEVER in code) ----------
+   Set in Railway:  ADMIN_USER  (default "ambika")  and  ADMIN_PASS  (your secret password).
+   If neither ADMIN_PASS nor ADMIN_PASS_HASH is set, admin login is DISABLED (fail-closed) — this is
+   deliberate: it means no default/guessable password can ever unlock the panel. */
+const ADMIN_USER = process.env.ADMIN_USER || "ambika";
+const ADMIN_PASS = process.env.ADMIN_PASS || "";               // plaintext password (set in Railway)
+const ADMIN_PASS_HASH = process.env.ADMIN_PASS_HASH || "";     // OR a scrypt "salt:hash" (preferred)
+const ADMIN_CONFIGURED = !!(ADMIN_PASS || ADMIN_PASS_HASH);
+const ADMIN_TTL = 1000 * 60 * 60 * 12;                         // admin session token valid 12 hours
+
+function makeAdminToken() {
+  const ts = Date.now();
+  const sig = crypto.createHmac("sha256", AUTH_SECRET).update("ADMIN|" + ts).digest("hex");
+  return "ADMIN." + ts + "." + sig;
+}
+function verifyAdminToken(tok) {
+  try {
+    const parts = String(tok || "").split(".");
+    if (parts.length !== 3 || parts[0] !== "ADMIN") return false;
+    const ts = Number(parts[1]);
+    if (!ts || (Date.now() - ts) > ADMIN_TTL) return false;            // expired
+    const expected = crypto.createHmac("sha256", AUTH_SECRET).update("ADMIN|" + ts).digest("hex");
+    const a = Buffer.from(expected), b = Buffer.from(String(parts[2]));
+    return a.length === b.length && crypto.timingSafeEqual(a, b);       // constant-time signature check
+  } catch (e) { return false; }
+}
+function bearer(req) {
+  const m = String(req.headers["authorization"] || "").match(/^Bearer\s+(.+)$/i);
+  return (m ? m[1] : "") || String(req.headers["x-admin-token"] || "");
+}
+function requireAdmin(req, res, next) {
+  if (verifyAdminToken(bearer(req))) return next();
+  return res.status(401).json({ error: "Admin login zaroori hai." });
+}
+
+/* brute-force protection: after 5 failed admin logins, lock that IP for 15 minutes */
+const adminFails = Object.create(null);
+function clientIp(req) {
+  return String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || (req.socket && req.socket.remoteAddress) || "ip";
+}
+function loginLockedFor(ip) {
+  const r = adminFails[ip];
+  return (r && r.until && Date.now() < r.until) ? Math.ceil((r.until - Date.now()) / 1000) : 0;
+}
+function noteLoginFail(ip) {
+  const r = adminFails[ip] || { count: 0, until: 0 };
+  r.count++;
+  if (r.count >= 5) { r.until = Date.now() + 15 * 60 * 1000; r.count = 0; }
+  adminFails[ip] = r;
 }
 
 /* ---------- local JSON fallback store (used when Supabase is unreachable) ---------- */
@@ -210,30 +261,50 @@ app.post("/api/auth/login", (req, res) => {
   res.json({ user: publicCustomer(cust), token: makeToken(cust.id) });
 });
 
+// ADMIN login — checks username/password against Railway env vars, returns a signed 12h token.
+// Rate-limited (5 tries → 15 min lock per IP) and fail-closed when no password is configured.
+app.post("/api/admin/login", (req, res) => {
+  const ip = clientIp(req);
+  const wait = loginLockedFor(ip);
+  if (wait) return res.status(429).json({ error: "Bahut zyada galat koshish. " + wait + " second baad try karein." });
+  if (!ADMIN_CONFIGURED) return res.status(503).json({ error: "Admin abhi set nahi hua — Railway mein ADMIN_PASS set karein." });
+  const b = req.body || {};
+  const u = String(b.username || "").trim();
+  const p = String(b.password || "");
+  let ok = u === ADMIN_USER && p.length > 0;
+  if (ok) {
+    if (ADMIN_PASS_HASH) ok = verifyPw(p, ADMIN_PASS_HASH);
+    else { const A = Buffer.from(p), B = Buffer.from(ADMIN_PASS); ok = A.length === B.length && crypto.timingSafeEqual(A, B); }
+  }
+  if (!ok) { noteLoginFail(ip); return res.status(401).json({ error: "Galat username ya password." }); }
+  delete adminFails[ip];
+  res.json({ token: makeAdminToken(), ttl: ADMIN_TTL });
+});
+
 // PRODUCTS (from the bundled catalogue; admin edits are kept in memory + JSON)
 app.get("/api/products", (req, res) => res.json(store.products));
-app.put("/api/products", (req, res) => {
+app.put("/api/products", requireAdmin, (req, res) => {
   if (!Array.isArray(req.body)) return res.status(400).json({ error: "expected array" });
   store.products = req.body; save(); res.json({ ok: true, count: store.products.length });
 });
-app.post("/api/products", (req, res) => {
+app.post("/api/products", requireAdmin, (req, res) => {
   const p = req.body || {}; if (!p.id) p.id = rid("PRD");
   store.products.unshift(p); save(); res.json(p);
 });
-app.put("/api/products/:id", (req, res) => {
+app.put("/api/products/:id", requireAdmin, (req, res) => {
   const i = store.products.findIndex(p => String(p.id) === req.params.id);
   if (i < 0) return res.status(404).json({ error: "not found" });
   store.products[i] = Object.assign({}, store.products[i], req.body, { id: store.products[i].id });
   save(); res.json(store.products[i]);
 });
-app.delete("/api/products/:id", (req, res) => {
+app.delete("/api/products/:id", requireAdmin, (req, res) => {
   const before = store.products.length;
   store.products = store.products.filter(p => String(p.id) !== req.params.id);
   save(); res.json({ ok: true, removed: before - store.products.length });
 });
 
 // ORDERS (stored in Supabase so they are permanent)
-app.get("/api/orders", (req, res) => res.json(store.orders));
+app.get("/api/orders", requireAdmin, (req, res) => res.json(store.orders));
 app.post("/api/orders", async (req, res) => {
   const o = req.body || {}; if (!o.id) o.id = rid("ORD");
   if (!o.createdAt) o.createdAt = Date.now();
@@ -242,7 +313,7 @@ app.post("/api/orders", async (req, res) => {
   if (SB_ON) { try { await sbUpsert("orders", [{ id: o.id, data: o, created_at: o.createdAt }]); } catch (e) { console.error("SB order upsert failed:", e.message); } }
   res.json(o);
 });
-app.put("/api/orders/:id", async (req, res) => {
+app.put("/api/orders/:id", requireAdmin, async (req, res) => {
   const i = store.orders.findIndex(o => String(o.id) === req.params.id);
   if (i < 0) return res.status(404).json({ error: "not found" });
   store.orders[i] = Object.assign({}, store.orders[i], req.body, { id: store.orders[i].id });
@@ -253,7 +324,7 @@ app.put("/api/orders/:id", async (req, res) => {
 });
 
 // CUSTOMERS (profile / address upsert — never touches the password)
-app.get("/api/customers", (req, res) => res.json(store.customers.map(publicCustomer)));
+app.get("/api/customers", requireAdmin, (req, res) => res.json(store.customers.map(publicCustomer)));
 app.post("/api/customers", async (req, res) => {
   const c = req.body || {};
   const key = String(c.phone || c.email || "").trim().toLowerCase();
@@ -278,7 +349,7 @@ app.post("/api/customers", async (req, res) => {
 
 // SETTINGS (global storefront flags — e.g. "Coming Soon" price mode; stored in Supabase)
 app.get("/api/settings", (req, res) => res.json(store.settings || {}));
-app.put("/api/settings", async (req, res) => {
+app.put("/api/settings", requireAdmin, async (req, res) => {
   if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) return res.status(400).json({ error: "expected object" });
   store.settings = Object.assign({}, store.settings, req.body);
   save();
