@@ -1445,7 +1445,7 @@
   function pageCategory() {
     // Works for both "/bouquet.html" and the clean "/bouquet" URL (Vercel cleanUrls)
     var f = (location.pathname.split("/").pop() || "").toLowerCase().replace(/\.html$/, "");
-    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry" };
+    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry", "car-decor": "Car Decor", "event-decor": "Event Decor", "balloon": "Balloon" };
     return map[f] || null;
   }
   function homeCard(p, dp, img) {
@@ -1544,6 +1544,7 @@
     var grid = document.getElementById("product-grid") || document.getElementById("productGrid");
     if (!pageCat || !grid || !Array.isArray(list)) return false;
     var items = list.filter(function (p) { return p && String(p.category || "") === pageCat; });
+    if (!items.length) return false;   // no products for this category in the DB → keep the page's existing cards (don't blank it)
     grid.innerHTML = items.map(function (p) {
       var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : (Number(p.price) || 0);
       var priceHtml = comingSoon ? "Coming Soon" : ("₹" + Number(dp).toLocaleString("en-IN"));

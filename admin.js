@@ -331,12 +331,25 @@
     apiGet("/api/customers").then(function (d) { if (Array.isArray(d)) { customers = customersFromServer(d); if (current === "customers") go("customers"); } }).catch(function () {});
     apiGet("/api/settings").then(function (d) { if (d && typeof d === "object") { var was = siteSettings.comingSoon; siteSettings = d; if (current === "dashboard" && was !== !!d.comingSoon) go("dashboard"); } }).catch(function () {});
   }
+  // PUT straight to Railway backend so a big catalogue (base64 photos) never hits Vercel's proxy body limit.
+  var RAILWAY = "https://ambikaflowers-production-a69a.up.railway.app";
+  function mirrorLocalProducts() { try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {} }
+  // Save the WHOLE list (used only for bulk operations like the catalogue re-seed).
   function saveProducts() {
-    try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {}
-    // PUT straight to Railway backend so a big catalogue (base64 photos) never hits Vercel's proxy body limit.
-    var RAILWAY = "https://ambikaflowers-production-a69a.up.railway.app";
+    mirrorLocalProducts();
     return fetch(RAILWAY + "/api/products", { method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(products) })
       .then(function (r) { if (!r.ok) { onAuthFail(r.status); return Promise.reject(r.status); } return r.json(); })
+      .catch(function (e) { if (typeof toast === "function") toast("⚠️ Save nahi hua (" + e + ") — dobara try karo"); return Promise.reject(e); });
+  }
+  // Save just ONE product (add / edit / delete). Keeps every request small — a single
+  // base64 photo is only a few MB, so it never blows the server's body limit even when
+  // the whole catalogue is hundreds of products. This is what makes uploads reliable.
+  function saveOneProduct(method, tail, body) {
+    mirrorLocalProducts();
+    var opt = { method: method, headers: authHeaders({ "Content-Type": "application/json" }) };
+    if (body !== undefined) opt.body = JSON.stringify(body);
+    return fetch(RAILWAY + "/api/products" + (tail || ""), opt)
+      .then(function (r) { if (!r.ok) { onAuthFail(r.status); return Promise.reject(r.status); } return r.json().catch(function () { return {}; }); })
       .catch(function (e) { if (typeof toast === "function") toast("⚠️ Save nahi hua (" + e + ") — dobara try karo"); return Promise.reject(e); });
   }
   var products = (function () {
@@ -945,7 +958,7 @@
       if (!confirm('Delete "' + p.title + '"?\nYe product hamesha ke liye hat jayega.')) return;
       var i = products.map(function (x) { return x.id; }).indexOf(id);
       if (i > -1) products.splice(i, 1);
-      saveProducts();
+      saveOneProduct("DELETE", "/" + encodeURIComponent(id));   // remove just this one on the server
       if (current === "products") go("products");
       notify("Product deleted ✓");
     },
@@ -961,9 +974,19 @@
         image: $("#pfImg").value || ""
       };
       obj.status = stockStatus(obj.stock).t;
-      if (editing) { products.forEach(function (p) { if (p.id === editing) { for (var k in obj) p[k] = obj[k]; } }); notify("Product updated ✓"); }
-      else { obj.id = "PRD" + rand(400, 999); obj.custom = true; products.unshift(obj); notify("Product added ✓ — live on the store"); }
-      saveProducts();
+      if (editing) {
+        obj.id = editing;
+        products.forEach(function (p) { if (p.id === editing) { for (var k in obj) p[k] = obj[k]; } });
+        saveOneProduct("PUT", "/" + encodeURIComponent(editing), obj);   // update just this one on the server
+        notify("Product updated ✓");
+      } else {
+        // Unique id (timestamp + random) so two new products can never clash.
+        obj.id = "PRD" + Date.now().toString(36) + rand(100, 999);
+        obj.custom = true;
+        products.unshift(obj);
+        saveOneProduct("POST", "", obj);                                 // add just this one on the server
+        notify("Product added ✓ — live on the store");
+      }
       closeModal();
       if (current === "products") go("products");
     },
