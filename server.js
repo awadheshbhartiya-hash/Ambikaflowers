@@ -185,8 +185,9 @@ function writeStore(s) {
   } catch (e) { console.error("store write failed", e && e.message); }
 }
 // Bump this when the bundled catalogue (catalog-seed.json) changes and the live
-// product list should be rebuilt.
-const CATALOG_VERSION = 4;
+// product list should be REBUILT from the seed. v5 = empty catalogue: the shop now
+// starts with ZERO products, and everything is added from the admin panel.
+const CATALOG_VERSION = 5;
 let store = readStore();
 if (!store || typeof store !== "object") store = {};
 if (!Array.isArray(store.orders)) store.orders = [];
@@ -230,16 +231,35 @@ async function loadFromSupabase() {
     const ords = await sbGet("orders?select=data&order=created_at.desc");
     if (Array.isArray(ords)) store.orders = ords.map(function (r) { return r.data; }).filter(Boolean);
   } catch (e) { console.error("SB orders load failed:", e.message); }
+  let seedVersion = null;
   try {
     const st = await sbGet("settings?id=eq.global&select=data");
-    if (Array.isArray(st) && st[0] && st[0].data) store.settings = Object.assign({}, store.settings, st[0].data);
+    if (Array.isArray(st) && st[0] && st[0].data) {
+      store.settings = Object.assign({}, store.settings, st[0].data);
+      seedVersion = store.settings.seedVersion;
+    }
   } catch (e) { console.error("SB settings load failed:", e.message); }
   try {
-    const prods = await sbGet("products?select=data");
-    if (Array.isArray(prods) && prods.length) {
-      store.products = prods.map(function (r) { return r.data; }).filter(Boolean);   // Supabase = source of truth
-    } else if (Array.isArray(store.products) && store.products.length) {
-      await sbUpsertBatch("products", productRows(store.products));                    // first run → seed the table once
+    if (seedVersion !== CATALOG_VERSION) {
+      // A new catalogue version shipped → the bundled seed is the source of truth.
+      // v5's seed is EMPTY, so this clears every old product from the live database
+      // exactly once. The marker below is stored in Supabase (permanent), so products
+      // the shopkeeper adds later from the admin panel are NEVER wiped on a restart.
+      const seed = loadSeed();
+      store.products = Array.isArray(seed) ? seed : [];
+      const rows = productRows(store.products);
+      if (rows.length) {
+        await sbUpsertBatch("products", rows);
+        await sbDelete("products", "id=not.in.(" + rows.map(function (r) { return r.id; }).join(",") + ")");
+      } else {
+        await sbDelete("products", "id=neq.__none__");   // no seed rows → remove ALL products
+      }
+      store.settings.seedVersion = CATALOG_VERSION;
+      try { await sbUpsert("settings", [{ id: "global", data: store.settings }]); } catch (e2) { console.error("SB seedVersion save failed:", e2.message); }
+      console.log("Catalogue reset to seed v" + CATALOG_VERSION + " (" + rows.length + " products)");
+    } else {
+      const prods = await sbGet("products?select=data");
+      store.products = (Array.isArray(prods) ? prods : []).map(function (r) { return r.data; }).filter(Boolean);   // Supabase = source of truth
     }
   } catch (e) { console.error("SB products load failed:", e.message); }
   save();
@@ -312,9 +332,13 @@ app.put("/api/products", requireAdmin, async (req, res) => {          // admin b
   if (SB_ON) {
     try {
       const rows = productRows(store.products);
-      await sbUpsertBatch("products", rows);                          // insert/update all
       const ids = rows.map(function (r) { return r.id; });
-      if (ids.length) await sbDelete("products", "id=not.in.(" + ids.join(",") + ")");   // remove deleted ones
+      if (ids.length) {
+        await sbUpsertBatch("products", rows);                        // insert/update all
+        await sbDelete("products", "id=not.in.(" + ids.join(",") + ")");   // remove deleted ones
+      } else {
+        await sbDelete("products", "id=neq.__none__");                // list emptied → remove ALL products
+      }
     } catch (e) { console.error("SB products bulk save failed:", e.message); }
   }
   res.json({ ok: true, count: store.products.length });
@@ -422,7 +446,7 @@ app.post("/api/razorpay/verify", (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: String(e && e.message || e) }); }
 });
 
-app.get("/api/health", (req, res) => res.json({ ok: true, build: "2026-09-02-secure-cors", cors: true, adminAuth: ADMIN_CONFIGURED, dataDir: DATA_DIR, supabase: SB_ON, razorpay: !!RZP_KEY_SECRET, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
+app.get("/api/health", (req, res) => res.json({ ok: true, build: "2026-09-05-fresh-catalog", cors: true, adminAuth: ADMIN_CONFIGURED, dataDir: DATA_DIR, supabase: SB_ON, razorpay: !!RZP_KEY_SECRET, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
 
 /* ---------- static site ---------- */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));

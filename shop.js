@@ -1544,7 +1544,16 @@
     var grid = document.getElementById("product-grid") || document.getElementById("productGrid");
     if (!pageCat || !grid || !Array.isArray(list)) return false;
     var items = list.filter(function (p) { return p && String(p.category || "") === pageCat; });
-    if (!items.length) return false;   // no products for this category in the DB → keep the page's existing cards (don't blank it)
+    if (!items.length) {
+      // The database is the source of truth. It has no products in this category, so
+      // clear the page's old static cards and show a friendly empty state. (Callers only
+      // pass a real array here when the backend responded — a network failure keeps the
+      // static cards instead, see syncStorefrontPrices.)
+      grid.innerHTML = '<div class="ak-cat-empty" style="grid-column:1/-1;text-align:center;padding:52px 18px;color:#a1758a;font-size:15px;line-height:1.6;">' +
+        '<div style="font-size:42px;margin-bottom:10px;">🌸</div><b>Is category mein abhi koi product nahi hai.</b><br>Naye products jald hi add honge!</div>';
+      var c0 = document.getElementById("product-count"); if (c0) c0.textContent = "Showing 0 products";
+      return true;
+    }
     grid.innerHTML = items.map(function (p) {
       var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : (Number(p.price) || 0);
       var priceHtml = comingSoon ? "Coming Soon" : ("₹" + Number(dp).toLocaleString("en-IN"));
@@ -1566,12 +1575,13 @@
   }
   function syncStorefrontPrices() {
     var pSettings = fetch(API_BASE + "/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
-    var pProducts = fetch(API_BASE + "/api/products").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; });
+    // null (not []) signals the backend was unreachable → keep the static cards.
+    var pProducts = fetch(API_BASE + "/api/products").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
     Promise.all([pSettings, pProducts]).then(function (res) {
-      var settings = res[0] || {}, list = res[1] || [];
+      var settings = res[0] || {}, list = res[1];
       var comingSoon = !!settings.comingSoon;
       var didGrid = false;
-      try { didGrid = renderCategoryGrid(list, comingSoon); } catch (e) {}   // category pages → live from DB
+      if (Array.isArray(list)) { try { didGrid = renderCategoryGrid(list, comingSoon); } catch (e) {} }   // category pages → live from DB
       if (comingSoon) { applyComingSoonRepeat(); return; }   // Coming Soon mode ON
       if (didGrid) return;                                    // category grid already rendered from DB
       if (!Array.isArray(list) || !list.length) return;
