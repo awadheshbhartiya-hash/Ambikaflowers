@@ -333,7 +333,11 @@
   }
   function saveProducts() {
     try { localStorage.setItem("ambika_products", JSON.stringify(products)); } catch (e) {}
-    apiSend("PUT", "/api/products", products).catch(function () {});   // persist to the shared database
+    // PUT straight to Railway backend so a big catalogue (base64 photos) never hits Vercel's proxy body limit.
+    var RAILWAY = "https://ambikaflowers-production-a69a.up.railway.app";
+    return fetch(RAILWAY + "/api/products", { method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(products) })
+      .then(function (r) { if (!r.ok) { onAuthFail(r.status); return Promise.reject(r.status); } return r.json(); })
+      .catch(function (e) { if (typeof toast === "function") toast("⚠️ Save nahi hua (" + e + ") — dobara try karo"); return Promise.reject(e); });
   }
   var products = (function () {
     var existing = null; try { existing = JSON.parse(localStorage.getItem("ambika_products")); } catch (e) {}
