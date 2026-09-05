@@ -1539,6 +1539,24 @@
   /* ---- Category pages: build the product grid LIVE from the database ----
      So whatever the admin has (add / edit / delete / price) is exactly what the
      website shows. Runs only on bouquet/hamper/vermala/flower-jewelry pages. */
+  // Recompute the left sidebar category counts (All + each sub-filter) from the live
+  // database, so they always match what's actually on the page. Sub-filter buttons are
+  // <li onclick="filterSub('rose',this)"> with a <span class="count">. Generic across
+  // bouquet / hamper / vermala / flower-jewelry; a no-op if the page has no such list.
+  function updateCategoryCounts(items) {
+    var subCounts = {};
+    items.forEach(function (p) {
+      var s = String(p.tags || "").split(/[ ,]+/)[0].toLowerCase() || "all";
+      subCounts[s] = (subCounts[s] || 0) + 1;
+    });
+    document.querySelectorAll('li[onclick^="filterSub"]').forEach(function (li) {
+      var m = String(li.getAttribute("onclick") || "").match(/filterSub\(\s*['"]([^'"]*)['"]/);
+      if (!m) return;
+      var cnt = li.querySelector(".count"); if (!cnt) return;
+      var key = m[1].toLowerCase();
+      cnt.textContent = key === "all" ? items.length : (subCounts[key] || 0);
+    });
+  }
   function renderCategoryGrid(list, comingSoon) {
     var pageCat = pageCategory();
     var grid = document.getElementById("product-grid") || document.getElementById("productGrid");
@@ -1552,6 +1570,7 @@
       grid.innerHTML = '<div class="ak-cat-empty" style="grid-column:1/-1;text-align:center;padding:52px 18px;color:#a1758a;font-size:15px;line-height:1.6;">' +
         '<div style="font-size:42px;margin-bottom:10px;">🌸</div><b>Is category mein abhi koi product nahi hai.</b><br>Naye products jald hi add honge!</div>';
       var c0 = document.getElementById("product-count"); if (c0) c0.textContent = "Showing 0 products";
+      updateCategoryCounts([]);   // sidebar → all zeros
       return true;
     }
     grid.innerHTML = items.map(function (p) {
@@ -1571,6 +1590,7 @@
     }).join("");
     var cnt = document.getElementById("product-count");
     if (cnt) cnt.textContent = "Showing all " + items.length + " products";
+    updateCategoryCounts(items);   // sidebar counts match the live DB
     return true;
   }
   function syncStorefrontPrices() {
