@@ -271,6 +271,33 @@
         '<div class="ak-skel-wrap"><div class="ak-skel"></div><div class="ak-skel"></div></div>' +
       '</div>';
   }
+  /* Re-price cart items from the LIVE catalogue so an admin price change is always
+     reflected — the cart stores a price snapshot at add-time, which can go stale.
+     Matches by product name (cart ids are name-slugs, not the DB's PRD id). */
+  function refreshCartPrices(cb) {
+    if (!cart.length) { if (cb) cb(); return; }
+    fetch(API_BASE + "/api/products")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (list) {
+        if (Array.isArray(list)) {
+          var map = {};
+          list.forEach(function (p) {
+            if (p && p.title) {
+              var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : (Number(p.price) || 0);
+              map[String(p.title).trim().toLowerCase()] = dp;
+            }
+          });
+          var changed = false;
+          cart.forEach(function (it) {
+            var np = map[String(it.name).trim().toLowerCase()];
+            if (np != null && np !== it.price) { it.price = np; changed = true; }
+          });
+          if (changed) { save(CART_KEY, cart); updateBadges(); }
+        }
+        if (cb) cb();
+      })
+      .catch(function () { if (cb) cb(); });
+  }
   function openCart() {
     var c = document.getElementById("ak-cart");
     if (!c) return;
@@ -278,6 +305,8 @@
     document.getElementById("ak-cart-ov").classList.add("open");
     showCartLoader();
     clearTimeout(cartLoadTimer);
+    // Pull live prices first, then render; the timer is a fallback if the fetch is slow.
+    refreshCartPrices(function () { clearTimeout(cartLoadTimer); renderCart(); });
     cartLoadTimer = setTimeout(renderCart, 1100);
   }
   function closeCart() { clearTimeout(cartLoadTimer); document.getElementById("ak-cart").classList.remove("open"); document.getElementById("ak-cart-ov").classList.remove("open"); }
