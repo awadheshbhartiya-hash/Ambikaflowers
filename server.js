@@ -328,10 +328,12 @@ app.post("/api/admin/login", (req, res) => {
 app.get("/api/products", (req, res) => res.json(store.products));
 app.put("/api/products", requireAdmin, async (req, res) => {          // admin bulk save (full list)
   if (!Array.isArray(req.body)) return res.status(400).json({ error: "expected array" });
-  store.products = req.body; save();
+  // Write to Supabase FIRST — only commit to memory + report success once the
+  // database actually accepted it. Otherwise a failed DB write would silently
+  // "succeed" and the products would vanish on the next restart.
   if (SB_ON) {
     try {
-      const rows = productRows(store.products);
+      const rows = productRows(req.body);
       const ids = rows.map(function (r) { return r.id; });
       if (ids.length) {
         await sbUpsertBatch("products", rows);                        // insert/update all
@@ -339,29 +341,53 @@ app.put("/api/products", requireAdmin, async (req, res) => {          // admin b
       } else {
         await sbDelete("products", "id=neq.__none__");                // list emptied → remove ALL products
       }
-    } catch (e) { console.error("SB products bulk save failed:", e.message); }
+    } catch (e) {
+      console.error("SB products bulk save failed:", e.message);
+      return res.status(502).json({ error: "Database mein save nahi hua: " + e.message });
+    }
   }
+  store.products = req.body; save();
   res.json({ ok: true, count: store.products.length });
 });
 app.post("/api/products", requireAdmin, async (req, res) => {         // add one
   const p = req.body || {}; if (!p.id) p.id = rid("PRD");
+  // Persist to Supabase FIRST; if the DB rejects it, tell the admin instead of
+  // faking success (the product would only live in memory and die on restart).
+  if (SB_ON) {
+    try { await sbUpsert("products", productRows([p])); }
+    catch (e) {
+      console.error("SB product add failed:", e.message);
+      return res.status(502).json({ error: "Database mein save nahi hua: " + e.message });
+    }
+  }
   store.products.unshift(p); save();
-  if (SB_ON) { try { await sbUpsert("products", productRows([p])); } catch (e) { console.error("SB product add failed:", e.message); } }
   res.json(p);
 });
 app.put("/api/products/:id", requireAdmin, async (req, res) => {      // update one
   const i = store.products.findIndex(p => String(p.id) === req.params.id);
   if (i < 0) return res.status(404).json({ error: "not found" });
-  store.products[i] = Object.assign({}, store.products[i], req.body, { id: store.products[i].id });
-  save();
-  if (SB_ON) { try { await sbUpsert("products", productRows([store.products[i]])); } catch (e) { console.error("SB product update failed:", e.message); } }
+  const updated = Object.assign({}, store.products[i], req.body, { id: store.products[i].id });
+  if (SB_ON) {
+    try { await sbUpsert("products", productRows([updated])); }
+    catch (e) {
+      console.error("SB product update failed:", e.message);
+      return res.status(502).json({ error: "Database mein save nahi hua: " + e.message });
+    }
+  }
+  store.products[i] = updated; save();
   res.json(store.products[i]);
 });
 app.delete("/api/products/:id", requireAdmin, async (req, res) => {   // delete one
+  if (SB_ON) {
+    try { await sbDelete("products", "id=eq." + encodeURIComponent(req.params.id)); }
+    catch (e) {
+      console.error("SB product delete failed:", e.message);
+      return res.status(502).json({ error: "Database se delete nahi hua: " + e.message });
+    }
+  }
   const before = store.products.length;
   store.products = store.products.filter(p => String(p.id) !== req.params.id);
   save();
-  if (SB_ON) { try { await sbDelete("products", "id=eq." + encodeURIComponent(req.params.id)); } catch (e) { console.error("SB product delete failed:", e.message); } }
   res.json({ ok: true, removed: before - store.products.length });
 });
 

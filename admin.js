@@ -808,21 +808,40 @@
         image: $("#pfImg").value || ""
       };
       obj.status = stockStatus(obj.stock).t;
+      // Apply locally for a snappy UI, but keep a way to ROLL BACK if the server
+      // rejects the save — so the admin never shows a product that isn't really
+      // saved in the database (which would vanish on the next restart).
+      var req, okMsg, prevSnapshot = null;
       if (editing) {
         obj.id = editing;
-        products.forEach(function (p) { if (p.id === editing) { for (var k in obj) p[k] = obj[k]; } });
-        saveOneProduct("PUT", "/" + encodeURIComponent(editing), obj);   // update just this one on the server
-        notify("Product updated ✓");
+        products.forEach(function (p) { if (p.id === editing) { prevSnapshot = JSON.parse(JSON.stringify(p)); for (var k in obj) p[k] = obj[k]; } });
+        req = saveOneProduct("PUT", "/" + encodeURIComponent(editing), obj);   // update just this one on the server
+        okMsg = "Product updated ✓";
       } else {
         // Unique id (timestamp + random) so two new products can never clash.
         obj.id = "PRD" + Date.now().toString(36) + rand(100, 999);
         obj.custom = true;
         products.unshift(obj);
-        saveOneProduct("POST", "", obj);                                 // add just this one on the server
-        notify("Product added ✓ — live on the store");
+        req = saveOneProduct("POST", "", obj);                                 // add just this one on the server
+        okMsg = "Product added ✓ — live on the store";
       }
+      notify("Saving… ⏳");
       closeModal();
       if (current === "products") go("products");
+      req.then(function () {
+        notify(okMsg);
+      }).catch(function () {
+        // Server/database ne save nahi kiya → local change wapas hatao, taaki jo
+        // admin mein dikhe wahi asli (database wala) ho.
+        if (editing) {
+          if (prevSnapshot) products.forEach(function (p, i) { if (p.id === editing) products[i] = prevSnapshot; });
+        } else {
+          products = products.filter(function (p) { return p.id !== obj.id; });
+        }
+        try { mirrorLocalProducts(); } catch (e) {}
+        if (current === "products") go("products");
+        notify("❌ Save nahi hua — database tak nahi pahuncha. Dobara try karein.");
+      });
     },
     /* ---- Corporate Leads actions ---- */
     leadStatus: function (id, s) { var l = loadLeads(); l.forEach(function (x) { if (x.id === id) x.status = s; }); lsSave(LEADS_KEY, l); notify("Lead " + id + " → " + s); },
