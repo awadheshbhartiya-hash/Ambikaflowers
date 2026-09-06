@@ -189,7 +189,8 @@ function writeStore(s) {
 // bouquets. v7 = 46 organized Bouquet products (products/bouquet/*, categorized
 // rose/mixed/money/choco/grand/small) seeded once into Supabase; after this boot
 // they are normal DB rows the admin panel can edit/re-price/delete.
-const CATALOG_VERSION = 7;
+// v8 = adds 27 Vermala products (products/varmala/*, rose-vermala / mixed-flower-vermala).
+const CATALOG_VERSION = 8;
 let store = readStore();
 if (!store || typeof store !== "object") store = {};
 if (!Array.isArray(store.orders)) store.orders = [];
