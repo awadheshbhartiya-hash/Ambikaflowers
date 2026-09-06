@@ -148,7 +148,15 @@
   }
   var _lastOrderN = -1;
   function syncFromServer(initial) {
-    apiGet("/api/products").then(function (d) { if (Array.isArray(d)) { products = d; try { mirrorLocalProducts(); } catch (e) {} if (current === "products") go("products"); } }).catch(function () {});
+    apiGet("/api/products").then(function (d) {
+      if (!Array.isArray(d)) return;
+      var changed = prodSig(d) !== prodSig(products);
+      products = d; try { mirrorLocalProducts(); } catch (e) {}
+      // Don't re-render while the admin is editing (modal open) or when nothing
+      // actually changed — that periodic re-render was the "refresh" that
+      // interrupted rate edits. Refresh the table in place only when needed.
+      if (current === "products" && changed && !modalOpen()) refreshProductTable();
+    }).catch(function () {});
     apiGet("/api/orders").then(function (d) {
       if (!Array.isArray(d)) return;
       orders = d.map(normalizeOrder);
@@ -486,7 +494,7 @@
     return '' +
       '<div class="page-head"><div><h1>Products & Inventory</h1><p>Stock matrix and catalogue control</p></div>' +
       '<button class="btn btn-primary" onclick="ADMIN.addProduct()">＋ Add New Product</button></div>' +
-      '<div class="grid g-4" style="margin-bottom:18px;">' +
+      '<div class="grid g-4" id="prodMetrics" style="margin-bottom:18px;">' +
         metric("violet", "🌷", "Total Products", products.length, "up", "catalogue") +
         metric("green", "✅", "In Stock", products.filter(function (p) { return p.stock > 10; }).length, "up", "healthy") +
         metric("amber", "⚠️", "Low Stock", products.filter(function (p) { return p.stock > 0 && p.stock <= 10; }).length, "down", "reorder soon") +
@@ -508,6 +516,26 @@
           '<button class="mini-btn" title="Delete" style="color:#d33;" onclick="ADMIN.delProduct(\'' + p.id + '\')">🗑 Delete</button></td></tr>';
     }).join("");
   }
+
+  /* Update ONLY the products table + metric tiles in place — no full page
+     re-render, no scroll-to-top, no flash. Used after add/edit/delete and by the
+     background sync, so editing a rate never feels like a page "refresh". */
+  function refreshProductTable() {
+    var body = document.getElementById("prodBody");
+    if (body) body.innerHTML = productRows();
+    var m = document.getElementById("prodMetrics");
+    if (m) m.innerHTML =
+      metric("violet", "🌷", "Total Products", products.length, "up", "catalogue") +
+      metric("green", "✅", "In Stock", products.filter(function (p) { return p.stock > 10; }).length, "up", "healthy") +
+      metric("amber", "⚠️", "Low Stock", products.filter(function (p) { return p.stock > 0 && p.stock <= 10; }).length, "down", "reorder soon") +
+      metric("red", "⛔", "Out of Stock", products.filter(function (p) { return p.stock === 0; }).length, "down", "restock");
+  }
+  // Lightweight signature to detect real product changes (avoids stringifying the
+  // whole list with its big base64 images on every 6s poll).
+  function prodSig(list) {
+    return (list || []).map(function (p) { return p.id + ":" + p.price + ":" + p.discount + ":" + p.stock + ":" + p.status + ":" + p.title; }).join("|");
+  }
+  function modalOpen() { var m = document.getElementById("modal"); return !!(m && m.classList.contains("open")); }
 
   /* ---------- CORPORATE LEADS ---------- */
   pages.leads = function () {
@@ -812,13 +840,15 @@
       var i = products.map(function (x) { return x.id; }).indexOf(id);
       if (i > -1) products.splice(i, 1);
       saveOneProduct("DELETE", "/" + encodeURIComponent(id));   // remove just this one on the server
-      if (current === "products") go("products");
+      if (current === "products") refreshProductTable();
       notify("Product deleted ✓");
     },
     saveProduct: function () {
       var t = $("#pfTitle").value.trim(); if (!t) { notify("Title required"); return; }
       var editing = $("#pfId").value;
-      var price = +$("#pfPrice").value || 0;
+      // Price field is a free-text input (letters allowed) — pull the number out of
+      // whatever was typed (e.g. "1,200", "₹999", "500 rs" → 1200/999/500).
+      var price = parseInt(String($("#pfPrice").value || "").replace(/[^0-9]/g, ""), 10) || 0;
       var discount = +$("#pfDisc").value || 0;
       var obj = {
         title: t, category: $("#pfCat").value, price: price, discount: discount,
@@ -846,7 +876,7 @@
       }
       notify("Saving… ⏳");
       closeModal();
-      if (current === "products") go("products");
+      if (current === "products") refreshProductTable();
       req.then(function () {
         notify(okMsg);
       }).catch(function () {
@@ -858,7 +888,7 @@
           products = products.filter(function (p) { return p.id !== obj.id; });
         }
         try { mirrorLocalProducts(); } catch (e) {}
-        if (current === "products") go("products");
+        if (current === "products") refreshProductTable();
         notify("❌ Save nahi hua — database tak nahi pahuncha. Dobara try karein.");
       });
     },
@@ -890,7 +920,7 @@
         '<input type="hidden" id="pfImg" value="' + (p ? esc(p.image || "") : "") + '">' +
         '<div class="fld"><label>Category</label><select id="pfCat">' + cats + '</select></div>' +
         '<div class="fld"><label>Tags</label><input id="pfTags" value="' + (p ? p.tags : "new") + '" placeholder="bestseller"></div>' +
-        '<div class="fld"><label>Price (₹)</label><input id="pfPrice" type="number" value="' + (p ? p.price : "") + '"></div>' +
+        '<div class="fld"><label>Price (₹)</label><input id="pfPrice" type="text" inputmode="text" value="' + (p ? p.price : "") + '"></div>' +
         '<div class="fld"><label>Discount (%)</label><input id="pfDisc" type="number" value="' + (p ? p.discount : 0) + '"></div>' +
         '<div class="fld"><label>Stock Count</label><input id="pfStock" type="number" value="' + (p ? p.stock : "") + '"></div>' +
       '</div>' +
@@ -1063,7 +1093,7 @@
     window.addEventListener("storage", function (e) {
       if (e.key === "ambika_leads") { updateLeadBadge(); if (current === "leads") go("leads"); notify("📨 New corporate lead received"); }
       else if (e.key === "ambika_orders") { checkNewOrders(true); }   // plays chime if a new order arrived
-      else if (e.key === "ambika_products") { if (current === "products") go("products"); }
+      else if (e.key === "ambika_products") { if (current === "products" && !modalOpen()) refreshProductTable(); }
       else if (e.key === "ambika_carts") { if (current === "carts" || current === "dashboard" || current === "analytics") go(current); }
       else if (e.key === "ambika_activity" && current === "activity") go("activity");
     });
