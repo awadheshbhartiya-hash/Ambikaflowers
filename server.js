@@ -185,9 +185,10 @@ function writeStore(s) {
   } catch (e) { console.error("store write failed", e && e.message); }
 }
 // Bump this when the bundled catalogue (catalog-seed.json) changes and the live
-// product list should be REBUILT from the seed. v5 = empty catalogue: the shop now
-// starts with ZERO products, and everything is added from the admin panel.
-const CATALOG_VERSION = 5;
+// product list should be REBUILT from the seed. v5 = empty catalogue. v6 = 7 real
+// Bouquet products (from img/BQ001-007) seeded once into Supabase; after this boot
+// they are normal DB rows the admin panel can edit/delete like any other product.
+const CATALOG_VERSION = 6;
 let store = readStore();
 if (!store || typeof store !== "object") store = {};
 if (!Array.isArray(store.orders)) store.orders = [];
