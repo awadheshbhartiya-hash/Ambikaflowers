@@ -191,7 +191,8 @@ function writeStore(s) {
 // they are normal DB rows the admin panel can edit/re-price/delete.
 // v8 = adds 27 Vermala products (products/varmala/*, rose-vermala / mixed-flower-vermala).
 // v9 = adds 15 Flower Jewelry products (garland / hair / wristlet).
-const CATALOG_VERSION = 9;
+// v10 = adds 9 Hamper products (flower-hamper / gift-hamper / chocolate-hamper). All 4 categories now filled.
+const CATALOG_VERSION = 10;
 let store = readStore();
 if (!store || typeof store !== "object") store = {};
 if (!Array.isArray(store.orders)) store.orders = [];
