@@ -213,6 +213,7 @@ function publicCustomer(c) {
 }
 
 /* ---------- load live data from Supabase on boot (falls back silently) ---------- */
+let PRODUCTS_WRITE_DIAG = SB_ON ? "pending" : "no-supabase";   // exposed on /api/health
 async function loadFromSupabase() {
   if (!SB_ON) { console.log("Supabase not configured — using local JSON store"); return; }
   try {
@@ -262,6 +263,15 @@ async function loadFromSupabase() {
       store.products = (Array.isArray(prods) ? prods : []).map(function (r) { return r.data; }).filter(Boolean);   // Supabase = source of truth
     }
   } catch (e) { console.error("SB products load failed:", e.message); }
+  // DIAGNOSTIC: verify the "products" table actually accepts the real write shape
+  // used by the admin. Surfaced on /api/health as productsWrite so we can see the
+  // exact Supabase error without the secret key. Probe row is deleted right after.
+  try {
+    const probe = { id: "__diag_probe__", name: "diag", price: 0, data: { id: "__diag_probe__", title: "diag" }, updated_at: Date.now() };
+    await sbUpsert("products", [probe]);
+    await sbDelete("products", "id=eq.__diag_probe__");
+    PRODUCTS_WRITE_DIAG = "ok";
+  } catch (e) { PRODUCTS_WRITE_DIAG = e.message; console.error("SB products WRITE probe failed:", e.message); }
   save();
   console.log("Supabase loaded: " + store.customers.length + " customers, " + store.orders.length + " orders, " + store.products.length + " products");
 }
@@ -472,7 +482,7 @@ app.post("/api/razorpay/verify", (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: String(e && e.message || e) }); }
 });
 
-app.get("/api/health", (req, res) => res.json({ ok: true, build: "2026-09-05-fresh-catalog", cors: true, adminAuth: ADMIN_CONFIGURED, dataDir: DATA_DIR, supabase: SB_ON, razorpay: !!RZP_KEY_SECRET, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length }));
+app.get("/api/health", (req, res) => res.json({ ok: true, build: "2026-09-06-diag", cors: true, adminAuth: ADMIN_CONFIGURED, dataDir: DATA_DIR, supabase: SB_ON, razorpay: !!RZP_KEY_SECRET, volumePath: process.env.RAILWAY_VOLUME_MOUNT_PATH || null, persisted: STORE_EXISTED_ON_BOOT, products: store.products.length, orders: store.orders.length, customers: store.customers.length, productsWrite: PRODUCTS_WRITE_DIAG }));
 
 /* ---------- static site ---------- */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "index2.html")));
