@@ -182,8 +182,27 @@
     mirrorLocalProducts();
     var opt = { method: method, headers: authHeaders({ "Content-Type": "application/json" }) };
     if (body !== undefined) opt.body = JSON.stringify(body);
-    return fetch(RAILWAY + "/api/products" + (tail || ""), opt)
-      .then(function (r) { if (!r.ok) { onAuthFail(r.status); return Promise.reject(r.status); } return r.json().catch(function () { return {}; }); })
+    var tailp = "/api/products" + (tail || "");
+    // Same-origin (Vercel proxies /api/* to Railway) is the RELIABLE path from the
+    // browser — reads already use it. The direct Railway subdomain is cross-origin
+    // and can be blocked/unreachable on some networks, which silently killed saves.
+    // So try same-origin first, and fall back to the direct Railway URL only if that
+    // path is unavailable. A single product (with one compressed image) is small
+    // enough to pass the proxy body limit.
+    function hit(url) {
+      return fetch(url, opt).then(function (r) {
+        if (!r.ok) { onAuthFail(r.status); return Promise.reject(r.status); }
+        return r.json().catch(function () { return {}; });
+      });
+    }
+    return hit(API_BASE + tailp)
+      .catch(function (e) {
+        // A real HTTP status (auth/DB error) shouldn't be retried on the other URL —
+        // only a network-level failure (fetch rejects with a TypeError) means the
+        // same-origin path itself is unreachable, so then try direct Railway.
+        if (typeof e === "number") return Promise.reject(e);
+        return hit(RAILWAY + tailp);
+      })
       .catch(function (e) { if (typeof toast === "function") toast("⚠️ Save nahi hua (" + e + ") — dobara try karo"); return Promise.reject(e); });
   }
   var products = (function () {
