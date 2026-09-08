@@ -814,7 +814,28 @@
       }
     });
   }
+  /* Lock the page to a fixed "perfect view": no pinch-zoom, no double-tap zoom, and
+     no left/right drift of the whole page — on both mobile and desktop. Vertical
+     scrolling and any horizontal sliders (which have their own scroll) keep working. */
+  function lockViewport() {
+    try {
+      var vp = document.querySelector('meta[name="viewport"]');
+      if (!vp) { vp = document.createElement("meta"); vp.setAttribute("name", "viewport"); document.head.appendChild(vp); }
+      vp.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover");
+      var st = document.createElement("style");
+      st.id = "ak-view-lock";
+      st.textContent =
+        "html,body{max-width:100%;overflow-x:hidden;overscroll-behavior:none;}" +
+        "html{touch-action:pan-x pan-y;-ms-touch-action:pan-x pan-y;}";
+      document.head.appendChild(st);
+      // iOS Safari ignores user-scalable=no, so also cancel the pinch-zoom gesture.
+      ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
+        document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
+      });
+    } catch (e) {}
+  }
   function boot() {
+    lockViewport();
     injectUI();
     wireHeader();
     wireAddButtons();
@@ -1604,7 +1625,11 @@
     }
     grid.innerHTML = items.map(function (p) {
       var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : (Number(p.price) || 0);
-      var priceHtml = comingSoon ? "Coming Soon" : ("₹" + Number(dp).toLocaleString("en-IN"));
+      // If the admin typed letters in the price (e.g. "999 onwards", "Call for price"),
+      // show that text exactly; otherwise show the formatted ₹ amount.
+      var plabel = (p.priceLabel != null) ? String(p.priceLabel) : "";
+      var priceHtml = comingSoon ? "Coming Soon"
+        : (/[a-zऀ-ॿ]/i.test(plabel) ? esc(plabel) : ("₹" + Number(dp).toLocaleString("en-IN")));
       var sub = String(p.tags || "").split(/[ ,]+/)[0].toLowerCase() || "all";
       var subLabel = sub && sub !== "all" ? (sub.charAt(0).toUpperCase() + sub.slice(1) + " " + pageCat) : ("Fresh " + pageCat);
       var pid = String(p.id);
@@ -1641,7 +1666,8 @@
         if (!nm) { var nel = card.querySelector(".product-name"); nm = nel ? nel.textContent : ""; }
         var p = byName[String(nm).trim().toLowerCase()]; if (!p) return;
         var dp = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : p.price;
-        var money = "₹" + Number(dp).toLocaleString("en-IN");
+        var plbl = (p.priceLabel != null) ? String(p.priceLabel) : "";
+        var money = /[a-zऀ-ॿ]/i.test(plbl) ? plbl : ("₹" + Number(dp).toLocaleString("en-IN"));
         var pe = card.querySelector(".product-price"); if (pe) pe.textContent = money;
         var cur = card.querySelector(".price-current"); if (cur) cur.textContent = money;
         card.setAttribute("data-price", dp);

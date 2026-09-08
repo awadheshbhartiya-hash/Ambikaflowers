@@ -510,7 +510,7 @@
       var ss = stockStatus(p.stock);
       var thumb = p.image ? '<img src="' + esc(p.image) + '" alt="" onerror="this.style.display=\'none\'" style="width:38px;height:38px;border-radius:8px;object-fit:cover;margin-right:9px;vertical-align:middle;">' : '<span style="display:inline-block;width:38px;height:38px;border-radius:8px;background:rgba(120,140,170,.15);margin-right:9px;vertical-align:middle;text-align:center;line-height:38px;">🌸</span>';
       return '<tr><td>' + thumb + '<b>' + esc(p.title) + '</b>' + (p.custom ? ' <span class="pill pink" style="font-size:9px;">NEW</span>' : '') + '<br><small style="color:var(--ink2);">' + p.id + ' · ' + esc(p.tags) + '</small></td>' +
-        '<td><span class="pill blue">' + esc(p.category) + '</span></td><td>' + inr(p.price) + '</td>' +
+        '<td><span class="pill blue">' + esc(p.category) + '</span></td><td>' + ((p.priceLabel != null && /[a-zऀ-ॿ]/i.test(String(p.priceLabel))) ? esc(String(p.priceLabel)) : inr(p.price)) + '</td>' +
         '<td>' + (p.discount ? p.discount + "%" : "—") + '</td><td><b>' + p.stock + '</b></td><td>' + statusPill(ss.t) + '</td>' +
         '<td style="white-space:nowrap;"><button class="mini-btn" onclick="ADMIN.editProduct(\'' + p.id + '\')">✏ Edit</button> ' +
           '<button class="mini-btn" title="Delete" style="color:#d33;" onclick="ADMIN.delProduct(\'' + p.id + '\')">🗑 Delete</button></td></tr>';
@@ -846,15 +846,18 @@
     saveProduct: function () {
       var t = $("#pfTitle").value.trim(); if (!t) { notify("Title required"); return; }
       var editing = $("#pfId").value;
-      // Price field is a free-text input (letters allowed) — pull the number out of
-      // whatever was typed (e.g. "1,200", "₹999", "500 rs" → 1200/999/500).
-      var price = parseInt(String($("#pfPrice").value || "").replace(/[^0-9]/g, ""), 10) || 0;
+      // Price field is a free-text input (letters allowed). Keep the EXACT text the
+      // admin typed as priceLabel (shown as-is on admin + live site when it has
+      // letters, e.g. "999 onwards", "Call for price"), and also pull the number out
+      // (e.g. "1,200"/"₹999"/"500 rs" → 1200/999/500) for cart/discount math.
+      var rawPrice = String($("#pfPrice").value || "").trim();
+      var price = parseInt(rawPrice.replace(/[^0-9]/g, ""), 10) || 0;
       var discount = +$("#pfDisc").value || 0;
       var obj = {
         title: t, category: $("#pfCat").value, price: price, discount: discount,
         discountPrice: Math.round(price * (1 - discount / 100)),
         stock: +$("#pfStock").value || 0, tags: $("#pfTags").value || "new",
-        image: $("#pfImg").value || ""
+        image: $("#pfImg").value || "", priceLabel: rawPrice
       };
       obj.status = stockStatus(obj.stock).t;
       // Apply locally for a snappy UI, but keep a way to ROLL BACK if the server
@@ -920,7 +923,7 @@
         '<input type="hidden" id="pfImg" value="' + (p ? esc(p.image || "") : "") + '">' +
         '<div class="fld"><label>Category</label><select id="pfCat">' + cats + '</select></div>' +
         '<div class="fld"><label>Tags</label><input id="pfTags" value="' + (p ? p.tags : "new") + '" placeholder="bestseller"></div>' +
-        '<div class="fld"><label>Price (₹)</label><input id="pfPrice" type="text" inputmode="text" value="' + (p ? p.price : "") + '"></div>' +
+        '<div class="fld"><label>Price (₹)</label><input id="pfPrice" type="text" inputmode="text" value="' + (p ? esc(String(p.priceLabel != null ? p.priceLabel : p.price)) : "") + '"></div>' +
         '<div class="fld"><label>Discount (%)</label><input id="pfDisc" type="number" value="' + (p ? p.discount : 0) + '"></div>' +
         '<div class="fld"><label>Stock Count</label><input id="pfStock" type="number" value="' + (p ? p.stock : "") + '"></div>' +
       '</div>' +
