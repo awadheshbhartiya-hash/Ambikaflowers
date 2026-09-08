@@ -35,9 +35,13 @@
 }
 .ak-overlay.open { opacity:1; pointer-events:auto; }
 
-/* Lock background scroll while the cart drawer (or a modal) is open, so the
-   products behind don't move. Applied to <html> from shop.js open/close. */
-html.ak-scroll-lock, html.ak-scroll-lock body { overflow:hidden !important; }
+/* Lock background scroll while the cart drawer is open so the products behind
+   don't move. position:fixed on <body> is the only reliable lock on mobile
+   (plain overflow:hidden lets iOS/Android keep scrolling); shop.js preserves and
+   restores the scroll position. The cart drawer itself is position:fixed, so it
+   is unaffected and its own body still scrolls. */
+html.ak-scroll-lock { overflow:hidden !important; height:100% !important; }
+html.ak-scroll-lock body { position:fixed !important; left:0; right:0; width:100%; overflow:hidden !important; }
 
 /* ---------- Cart Drawer ---------- */
 .ak-cart {

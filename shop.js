@@ -298,19 +298,34 @@
       })
       .catch(function () { if (cb) cb(); });
   }
+  // Robust background scroll-lock (freezes the products behind the open cart).
+  // position:fixed on <body> is the only method that reliably stops touch scroll
+  // on mobile, so we save the scroll position and restore it on close.
+  var scrollLockY = 0;
+  function lockScroll() {
+    scrollLockY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    document.body.style.top = (-scrollLockY) + "px";
+    document.documentElement.classList.add("ak-scroll-lock");
+  }
+  function unlockScroll() {
+    if (!document.documentElement.classList.contains("ak-scroll-lock")) return;
+    document.documentElement.classList.remove("ak-scroll-lock");
+    document.body.style.top = "";
+    window.scrollTo(0, scrollLockY);
+  }
   function openCart() {
     var c = document.getElementById("ak-cart");
     if (!c) return;
     c.classList.add("open");
     document.getElementById("ak-cart-ov").classList.add("open");
-    document.documentElement.classList.add("ak-scroll-lock");   // freeze products behind
+    lockScroll();   // freeze products behind
     showCartLoader();
     clearTimeout(cartLoadTimer);
     // Pull live prices first, then render; the timer is a fallback if the fetch is slow.
     refreshCartPrices(function () { clearTimeout(cartLoadTimer); renderCart(); });
     cartLoadTimer = setTimeout(renderCart, 1100);
   }
-  function closeCart() { clearTimeout(cartLoadTimer); document.getElementById("ak-cart").classList.remove("open"); document.getElementById("ak-cart-ov").classList.remove("open"); document.documentElement.classList.remove("ak-scroll-lock"); }
+  function closeCart() { clearTimeout(cartLoadTimer); document.getElementById("ak-cart").classList.remove("open"); document.getElementById("ak-cart-ov").classList.remove("open"); unlockScroll(); }
 
   function renderCart() {
     var body = document.getElementById("ak-cart-body");
@@ -1509,8 +1524,11 @@
       '<div class="product-info"><span class="product-badge badge-new">New</span>' +
       '<div class="product-name">' + esc(p.title) + '</div>' +
       '<div class="product-rating"><span class="stars">★★★★★</span><span class="rating-count">(New)</span></div>' +
-      '<div class="product-price"><span class="price-current">₹' + dp.toLocaleString("en-IN") + '</span>' +
-      (p.discount ? '<span class="price-original">₹' + Number(p.price).toLocaleString("en-IN") + '</span><span class="price-off">' + p.discount + '% OFF</span>' : '') +
+      '<div class="product-price">' +
+      ((p.priceLabel != null && /[a-zऀ-ॿ]/i.test(String(p.priceLabel)))
+        ? '<span class="price-current">' + esc(String(p.priceLabel)) + '</span>'
+        : ('<span class="price-current">₹' + dp.toLocaleString("en-IN") + '</span>' +
+           (p.discount ? '<span class="price-original">₹' + Number(p.price).toLocaleString("en-IN") + '</span><span class="price-off">' + p.discount + '% OFF</span>' : ''))) +
       '</div><button class="add-to-cart">🛒 Add to Cart</button></div>';
     card.addEventListener("click", function (e) { if (e.target.closest(".add-to-cart")) return; if (window.AmbikaShop && window.AmbikaShop.openProductPage) window.AmbikaShop.openProductPage(card); });
     return card;
@@ -1523,7 +1541,7 @@
       '<div class="product-img-wrap"><img class="product-img" src="' + esc(img) + '" alt="' + esc(p.title) + '" onerror="this.style.visibility=\'hidden\'"></div>' +
       '<div class="product-info"><div class="product-sub-tag">✨ New Arrival</div>' +
       '<div class="product-name">' + esc(p.title) + '</div>' +
-      '<div class="product-price">₹' + dp.toLocaleString("en-IN") + '</div>' +
+      '<div class="product-price">' + ((p.priceLabel != null && /[a-zऀ-ॿ]/i.test(String(p.priceLabel))) ? esc(String(p.priceLabel)) : ("₹" + dp.toLocaleString("en-IN"))) + '</div>' +
       '<button class="add-to-cart">Add to Cart</button></div>';
     return card;
   }
