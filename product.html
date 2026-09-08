@@ -186,7 +186,11 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
     var match = null, key = String(name).trim().toLowerCase();
     if(Array.isArray(list)){ for(var i=0;i<list.length;i++){ var t=(list[i].title||list[i].name||"").trim().toLowerCase(); if(t===key){ match=list[i]; break; } } }
     var pr = match ? (match.discount ? Math.round(match.price*(1-match.discount/100)) : match.price) : price;
-    showPd(pr > 0 ? "₹" + Number(pr).toLocaleString("en-IN") : "Coming Soon");
+    // If the admin typed letters in the price (e.g. "1499+ toffee"), show that exact
+    // text here too — so the price is identical on the card and the product page.
+    var plbl = (match && match.priceLabel != null) ? String(match.priceLabel) : "";
+    if(/[a-zऀ-ॿ]/i.test(plbl)) showPd(plbl);
+    else showPd(pr > 0 ? "₹" + Number(pr).toLocaleString("en-IN") : "Coming Soon");
   });
   var imgEl = document.getElementById("pd-img");
   imgEl.onerror = function(){ this.style.visibility = "hidden"; };
