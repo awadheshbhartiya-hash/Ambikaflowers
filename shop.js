@@ -303,13 +303,14 @@
     if (!c) return;
     c.classList.add("open");
     document.getElementById("ak-cart-ov").classList.add("open");
+    document.documentElement.classList.add("ak-scroll-lock");   // freeze products behind
     showCartLoader();
     clearTimeout(cartLoadTimer);
     // Pull live prices first, then render; the timer is a fallback if the fetch is slow.
     refreshCartPrices(function () { clearTimeout(cartLoadTimer); renderCart(); });
     cartLoadTimer = setTimeout(renderCart, 1100);
   }
-  function closeCart() { clearTimeout(cartLoadTimer); document.getElementById("ak-cart").classList.remove("open"); document.getElementById("ak-cart-ov").classList.remove("open"); }
+  function closeCart() { clearTimeout(cartLoadTimer); document.getElementById("ak-cart").classList.remove("open"); document.getElementById("ak-cart-ov").classList.remove("open"); document.documentElement.classList.remove("ak-scroll-lock"); }
 
   function renderCart() {
     var body = document.getElementById("ak-cart-body");

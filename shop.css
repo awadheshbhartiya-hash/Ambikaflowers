@@ -29,10 +29,15 @@
 
 /* ---------- Overlay (shared by drawer & modal) ---------- */
 .ak-overlay {
-  position:fixed; inset:0; background:rgba(20,25,40,.5); z-index:10000;
-  opacity:0; pointer-events:none; transition:opacity .3s; backdrop-filter:blur(2px);
+  position:fixed; inset:0; background:rgba(20,25,40,.55); z-index:10000;
+  opacity:0; pointer-events:none; transition:opacity .3s;
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
 }
 .ak-overlay.open { opacity:1; pointer-events:auto; }
+
+/* Lock background scroll while the cart drawer (or a modal) is open, so the
+   products behind don't move. Applied to <html> from shop.js open/close. */
+html.ak-scroll-lock, html.ak-scroll-lock body { overflow:hidden !important; }
 
 /* ---------- Cart Drawer ---------- */
 .ak-cart {
