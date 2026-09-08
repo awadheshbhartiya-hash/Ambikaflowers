@@ -126,7 +126,7 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
     <div class="pd-tag" id="pd-tag">Ambika Flowers</div>
     <h1 class="pd-name" id="pd-name">Product</h1>
     <div class="pd-rating">★★★★★ <span>(Loved by customers)</span></div>
-    <div class="pd-price" id="pd-price">Coming Soon <small>Free greeting card 🌸</small></div>
+    <div class="pd-price" id="pd-price">Coming Soon</div>
     <p class="pd-desc" id="pd-desc"></p>
 
     <div class="pd-qty">
@@ -173,7 +173,7 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
   document.getElementById("bc-cat").textContent = tag || "Products";
   document.getElementById("pd-tag").textContent = tag || "Ambika Flowers";
   var pdPriceEl = document.getElementById("pd-price");
-  var giftNote = ' <small>Free greeting card 🌸</small>';
+  var giftNote = '';
   function showPd(txt){ pdPriceEl.innerHTML = txt + giftNote; }
   showPd("Coming Soon");
   // Respect the global "Coming Soon" toggle; otherwise show the live price from the database
