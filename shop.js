@@ -825,9 +825,10 @@
       vp.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover");
       var st = document.createElement("style");
       st.id = "ak-view-lock";
-      st.textContent =
-        "html,body{max-width:100%;overflow-x:hidden;overscroll-behavior:none;}" +
-        "html{touch-action:pan-x pan-y;-ms-touch-action:pan-x pan-y;}";
+      // Only stop horizontal drift — never touch overflow-y or touch-action, so
+      // vertical scrolling always works. Zoom is blocked via the viewport meta
+      // (Android) + the gesture handlers below (iOS), not via touch-action.
+      st.textContent = "html,body{max-width:100%;overflow-x:hidden;}";
       document.head.appendChild(st);
       // iOS Safari ignores user-scalable=no, so also cancel the pinch-zoom gesture.
       ["gesturestart", "gesturechange", "gestureend"].forEach(function (ev) {
