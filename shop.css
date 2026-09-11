@@ -51,16 +51,6 @@ html.ak-scroll-lock body { position:fixed !important; left:0; right:0; width:100
   touch-action: pan-x; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
 }
 
-/* Show the WHOLE product photo with NO crop and NO letterbox border. Studio
-   shots vary (square bouquets, portrait vermala), so a fixed-height box always
-   left a border. Instead we drop the fixed heights and let each image display at
-   its natural aspect ratio (full width of the card) — nothing is cut and there is
-   no empty border. Overrides each page's inline cover + fixed-height rules. */
-.product-img-wrap, .verm-img-wrap { height: auto !important; aspect-ratio: auto !important; }
-.product-img, .bs-card img, .verm-img, .pd-img {
-  width: 100% !important; height: auto !important; aspect-ratio: auto !important;
-  object-fit: fill !important; background: transparent !important; display: block;
-}
 
 /* ---------- Cart Drawer ---------- */
 .ak-cart {
