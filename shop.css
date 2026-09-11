@@ -51,14 +51,15 @@ html.ak-scroll-lock body { position:fixed !important; left:0; right:0; width:100
   touch-action: pan-x; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
 }
 
-/* Show the WHOLE product photo (studio shots are square/portrait) instead of
-   cropping with object-fit:cover — so no arrangement gets cut off on any card,
-   slider, or the product page, on both iPhone and Android. The soft letterbox
-   uses the card's own light background. Overrides each page's inline cover rule. */
+/* Show the WHOLE product photo with NO crop and NO letterbox border. Studio
+   shots vary (square bouquets, portrait vermala), so a fixed-height box always
+   left a border. Instead we drop the fixed heights and let each image display at
+   its natural aspect ratio (full width of the card) — nothing is cut and there is
+   no empty border. Overrides each page's inline cover + fixed-height rules. */
+.product-img-wrap, .verm-img-wrap { height: auto !important; aspect-ratio: auto !important; }
 .product-img, .bs-card img, .verm-img, .pd-img {
-  object-fit: contain !important;
-  object-position: center center !important;
-  background: #faf4f6;
+  width: 100% !important; height: auto !important; aspect-ratio: auto !important;
+  object-fit: fill !important; background: transparent !important; display: block;
 }
 
 /* ---------- Cart Drawer ---------- */
