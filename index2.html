@@ -257,9 +257,10 @@
   .product-img-wrap { width:100%;height:280px;overflow:hidden;background:#f8f5f5; }
   .product-img { width:100%;height:100%;object-fit:cover;object-position:center top;transition:transform .35s; }
   .product-card:hover .product-img { transform:scale(1.06); }
-  /* Signature Collection: keep the whole frame in view (video still on the first card was getting cropped) */
+  /* Signature Collection: every card fills its frame the same way (the old
+     first-card object-fit:contain left an empty white letterbox on the sides). */
   .sig-slider .product-img { object-position:center center; }
-  .sig-slider .product-card:first-child .product-img { object-fit:contain;background:#f4f1f1; }
+  .sig-slider .product-card:first-child .product-img { object-fit:cover; }
   .product-info { padding:14px 16px 16px; }
   .product-badge { display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:5px; }
   .badge-sale { background:#e84393;color:#fff; }
