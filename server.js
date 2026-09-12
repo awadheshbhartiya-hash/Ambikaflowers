@@ -192,7 +192,7 @@ function writeStore(s) {
 // v8 = adds 27 Vermala products (products/varmala/*, rose-vermala / mixed-flower-vermala).
 // v9 = adds 15 Flower Jewelry products (garland / hair / wristlet).
 // v10 = adds 9 Hamper products (flower-hamper / gift-hamper / chocolate-hamper). All 4 categories now filled.
-const CATALOG_VERSION = 10;
+const CATALOG_VERSION = 11;
 let store = readStore();
 if (!store || typeof store !== "object") store = {};
 if (!Array.isArray(store.orders)) store.orders = [];
