@@ -32,7 +32,7 @@
     "Chocolate Bouquet", "Fortuner Car Decor", "Bridal Rose Garland", "Sunflower Bunch",
     "Money Bouquet", "Teddy Bear Bouquet", "Anniversary Room Decor", "Haldi Stage Setup"
   ];
-  var CATEGORIES = ["Bouquet", "Hamper", "Vermala", "Car Decor", "Event Decor", "Balloon", "Flower Jewelry"];
+  var CATEGORIES = ["Bouquet", "Hamper", "Vermala", "Car Decor", "Event Decor", "Balloon", "Flower Jewelry", "Gajara"];
   var CITIES = ["Sikar", "Jaipur", "Delhi", "Bikaner", "Ajmer", "Churu", "Reengus"];
   var METHODS = ["UPI", "Card", "Net Banking", "COD"];
   var FIRST = ["Aarav","Diya","Vivaan","Ananya","Kabir","Isha","Rohan","Priya","Arjun","Meera","Kunal","Sneha","Rahul","Nisha","Vikram","Pooja"];

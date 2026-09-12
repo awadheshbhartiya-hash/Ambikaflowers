@@ -1512,7 +1512,7 @@
   function pageCategory() {
     // Works for both "/bouquet.html" and the clean "/bouquet" URL (Vercel cleanUrls)
     var f = (location.pathname.split("/").pop() || "").toLowerCase().replace(/\.html$/, "");
-    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry", "car-decor": "Car Decor", "event-decor": "Event Decor", "balloon": "Balloon" };
+    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry", "gajara": "Gajara", "car-decor": "Car Decor", "event-decor": "Event Decor", "balloon": "Balloon" };
     return map[f] || null;
   }
   function homeCard(p, dp, img) {
