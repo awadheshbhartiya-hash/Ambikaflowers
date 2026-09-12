@@ -257,6 +257,55 @@ html, body { overflow-x:hidden; }
   <a class="mob-nav-link" href="flower-jewelry.html">💍 Flower Jewelry</a>
   <a class="mob-nav-link" href="gajara.html">🌸 Gajara</a>
 </div>
+<script>
+/* All Products — self-contained loader (independent of shop.js) */
+(function () {
+  var grid = document.getElementById("product-grid");
+  if (!grid) return;
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+  function slug(c){ return String(c||"").toLowerCase().trim().replace(/\s+/g,"-"); }
+  function money(p){
+    var dp = p.discount ? Math.round(p.price*(1-p.discount/100)) : (Number(p.price)||0);
+    var lbl = (p.priceLabel!=null) ? String(p.priceLabel) : "";
+    if (/[a-zऀ-ॿ]/i.test(lbl)) return esc(lbl);
+    return "₹" + Number(dp).toLocaleString("en-IN");
+  }
+  function refreshCounts(){
+    var c = {}, total = 0;
+    grid.querySelectorAll(".product-card").forEach(function(card){ var s=(card.getAttribute("data-sub")||"").toLowerCase(); c[s]=(c[s]||0)+1; total++; });
+    document.querySelectorAll('.sub-list li[onclick^="filterSub"]').forEach(function(li){
+      var m=(li.getAttribute("onclick")||"").match(/filterSub\('([^']*)'/); if(!m) return;
+      var cnt=li.querySelector(".count"); if(!cnt) return;
+      var k=m[1].toLowerCase(); cnt.textContent = k==="all" ? total : (c[k]||0);
+    });
+    var pc=document.getElementById("product-count"); if(pc) pc.textContent = "Showing all "+total+" products";
+  }
+  function render(list){
+    if (!Array.isArray(list) || !list.length){
+      grid.innerHTML = '<div class="no-products">Abhi koi product nahi hai — naye products jald aayenge! 🌸</div>';
+      refreshCounts(); return;
+    }
+    grid.innerHTML = list.map(function(p){
+      var dp = p.discount ? Math.round(p.price*(1-p.discount/100)) : (Number(p.price)||0);
+      return '<div class="product-card" data-sub="'+esc(slug(p.category))+'" data-price="'+dp+'" data-name="'+esc(p.title)+'" onclick="window.location=\'product2.html?id='+encodeURIComponent(p.id)+'\'" style="cursor:pointer">'+
+        '<div class="product-img-wrap"><img class="product-img" src="'+esc(p.image||"")+'" alt="'+esc(p.title)+'" loading="lazy" onerror="this.style.visibility=\'hidden\'"></div>'+
+        '<div class="product-info"><div class="product-sub-tag">'+esc(p.category||"")+'</div>'+
+        '<div class="product-name">'+esc(p.title)+'</div>'+
+        '<div class="product-price">'+money(p)+'</div>'+
+        '<button class="add-to-cart">Add to Cart</button></div></div>';
+    }).join("");
+    refreshCounts();
+  }
+  // Reuse shop.js's catalogue fetch if present; otherwise fetch once ourselves.
+  var done = false;
+  function boot(list){ if(done) return; done = true; render(list); }
+  if (window.AMBIKA_PRODUCTS) { boot(window.AMBIKA_PRODUCTS); }
+  else {
+    document.addEventListener("ambika:products", function(e){ boot(e.detail || []); }, { once:true });
+    setTimeout(function(){ if(done) return; fetch("/api/products",{cache:"no-store"}).then(function(r){ return r.ok?r.json():[]; }).then(function(a){ boot(Array.isArray(a)?a:[]); }).catch(function(){ boot([]); }); }, 5500);
+  }
+})();
+</script>
 <script src="shop.js"></script>
 </body>
 </html>

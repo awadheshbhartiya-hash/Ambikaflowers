@@ -1512,7 +1512,7 @@
   function pageCategory() {
     // Works for both "/bouquet.html" and the clean "/bouquet" URL (Vercel cleanUrls)
     var f = (location.pathname.split("/").pop() || "").toLowerCase().replace(/\.html$/, "");
-    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry", "gajara": "Gajara", "car-decor": "Car Decor", "event-decor": "Event Decor", "balloon": "Balloon", "products": "__ALL__", "shop": "__ALL__" };
+    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry", "gajara": "Gajara", "car-decor": "Car Decor", "event-decor": "Event Decor", "balloon": "Balloon" };
     return map[f] || null;
   }
   function homeCard(p, dp, img) {
@@ -1683,6 +1683,9 @@
     var pProducts = fetch(API_BASE + "/api/products").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
     Promise.all([pSettings, pProducts]).then(function (res) {
       var settings = res[0] || {}, list = res[1];
+      // Share the fetched catalogue so page-level sliders (bestsellers, all-products)
+      // can reuse it instead of downloading the (large) product list a second time.
+      if (Array.isArray(list)) { try { window.AMBIKA_PRODUCTS = list; document.dispatchEvent(new CustomEvent("ambika:products", { detail: list })); } catch (e) {} }
       var comingSoon = !!settings.comingSoon;
       var didGrid = false;
       if (Array.isArray(list)) { try { didGrid = renderCategoryGrid(list, comingSoon); } catch (e) {} }   // category pages → live from DB
