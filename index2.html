@@ -529,12 +529,7 @@
   </div>
   <div class="util-right">
     <a class="util-link" href="#">🚚 Track Order</a>
-    <a class="util-link" href="#">🎧 Customer Support</a>
     <div class="util-actions">
-      <div class="action-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span>Reminders</span>
-      </div>
       <div class="action-item" onclick="toggleCart()" style="position:relative">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         <span>Cart</span>
@@ -873,36 +868,34 @@
   <div class="verm-subtitle">Handcrafted floral garlands for weddings &amp; special ceremonies</div>
   <div class="verm-slider-wrap">
     <button class="verm-arrow verm-arrow-left" onclick="document.getElementById('verm-slider').scrollBy({left:-320,behavior:'smooth'})">&#8249;</button>
-    <div class="verm-slider" id="verm-slider">
-      <div class="verm-card">
-        <div class="verm-img-wrap"><img src="verm1.jpg" alt="Pink Pearl Vermala" class="verm-img"></div>
-        <div class="verm-label">Pink Pearl Vermala</div>
-        <div class="verm-price">₹1,299</div>
-      </div>
-      <div class="verm-card">
-        <div class="verm-img-wrap"><img src="verm2.jpg" alt="Red Rose Vermala" class="verm-img"></div>
-        <div class="verm-label">Red Rose Vermala</div>
-        <div class="verm-price">₹1,499</div>
-      </div>
-      <div class="verm-card">
-        <div class="verm-img-wrap"><img src="verm3.jpg" alt="Ombre Carnation Vermala" class="verm-img"></div>
-        <div class="verm-label">Ombre Carnation Vermala</div>
-        <div class="verm-price">₹1,799</div>
-      </div>
-      <div class="verm-card">
-        <div class="verm-img-wrap"><img src="verm4.jpg" alt="Dark Rose Vermala" class="verm-img"></div>
-        <div class="verm-label">Dark Rose Vermala</div>
-        <div class="verm-price">₹1,199</div>
-      </div>
-      <div class="verm-card">
-        <div class="verm-img-wrap"><img src="verm5.jpg" alt="Pink White Vermala" class="verm-img"></div>
-        <div class="verm-label">Pink White Vermala</div>
-        <div class="verm-price">₹1,399</div>
-      </div>
-    </div>
+    <div class="verm-slider" id="verm-slider"></div>
     <button class="verm-arrow verm-arrow-right" onclick="document.getElementById('verm-slider').scrollBy({left:320,behavior:'smooth'})">&#8250;</button>
   </div>
 </section>
+<script>
+/* Vermala Collection — live vermala products from the database */
+(function(){
+  var slider = document.getElementById("verm-slider"); if(!slider) return;
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+  function price(p){ var dp=p.discount?Math.round(p.price*(1-p.discount/100)):(Number(p.price)||0); var l=(p.priceLabel!=null)?String(p.priceLabel):""; if(/[a-zऀ-ॿ]/i.test(l)) return esc(l); return "₹"+Number(dp).toLocaleString("en-IN"); }
+  function render(list){
+    var v = (list||[]).filter(function(p){ return String(p.category||"")==="Vermala"; }).slice(0,16);
+    if(!v.length) return;
+    slider.innerHTML = v.map(function(p){
+      return '<div class="verm-card" onclick="window.location=\'product2.html?id='+encodeURIComponent(p.id)+'\'" style="cursor:pointer">'+
+        '<div class="verm-img-wrap"><img src="'+esc(p.image||"")+'" alt="'+esc(p.title)+'" class="verm-img" loading="lazy" onerror="this.style.visibility=\'hidden\'"></div>'+
+        '<div class="verm-label">'+esc(p.title)+'</div>'+
+        '<div class="verm-price">'+price(p)+'</div></div>';
+    }).join("");
+  }
+  var done=false; function boot(l){ if(done) return; done=true; render(l); }
+  if(window.AMBIKA_PRODUCTS) boot(window.AMBIKA_PRODUCTS);
+  else {
+    document.addEventListener("ambika:products", function(e){ boot(e.detail||[]); }, {once:true});
+    setTimeout(function(){ if(done) return; fetch("/api/products",{cache:"no-store"}).then(function(r){ return r.ok?r.json():[]; }).then(function(a){ boot(Array.isArray(a)?a:[]); }).catch(function(){ boot([]); }); }, 5500);
+  }
+})();
+</script>
 
 <div class="trust-section">
   <div class="trust-item">

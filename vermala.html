@@ -105,6 +105,19 @@ html, body { overflow-x:hidden; }
   .search-bar button { padding:7px 12px; font-size:0.85rem; }
 }
 @media(max-width:400px){ .product-img-wrap { height:145px; } }
+
+/* moving flower garden in the nav */
+.navbar { position:relative; overflow:hidden; }
+.nav-garden { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
+.nav-fl { position:absolute; left:-46px; top:var(--top); font-size:18px; opacity:0; animation:navDrift var(--dur) linear infinite; animation-delay:var(--d); will-change:transform,opacity; }
+.nav-inner { position:relative; z-index:1; }
+@keyframes navDrift {
+  0% { transform:translateX(-46px) translateY(0) rotate(0deg); opacity:0; }
+  8% { opacity:.5; }
+  50% { transform:translateX(50vw) translateY(-6px) rotate(180deg); }
+  92% { opacity:.5; }
+  100% { transform:translateX(104vw) translateY(4px) rotate(360deg); opacity:0; }
+}
 </style>
 <link rel="stylesheet" href="shop.css">
 </head>
@@ -135,6 +148,17 @@ html, body { overflow-x:hidden; }
     </div>
   </div>
   <nav class="navbar">
+    <div class="nav-garden" aria-hidden="true">
+      <span class="nav-fl" style="--top:20%;--dur:16s;--d:0s;">🌸</span>
+      <span class="nav-fl" style="--top:60%;--dur:21s;--d:2.5s;">🌷</span>
+      <span class="nav-fl" style="--top:35%;--dur:18s;--d:5s;">🌹</span>
+      <span class="nav-fl" style="--top:72%;--dur:23s;--d:8s;">💐</span>
+      <span class="nav-fl" style="--top:14%;--dur:19s;--d:11s;">🌺</span>
+      <span class="nav-fl" style="--top:48%;--dur:17s;--d:3.5s;">🌼</span>
+      <span class="nav-fl" style="--top:28%;--dur:22s;--d:13s;">❀</span>
+      <span class="nav-fl" style="--top:64%;--dur:20s;--d:6.5s;">🌷</span>
+      <span class="nav-fl" style="--top:42%;--dur:15s;--d:9.5s;">🌸</span>
+    </div>
     <div class="nav-inner">
       <a href="bouquet.html">🌷 Bouquet</a>
       <a href="hamper.html">🎁 Hamper</a>
