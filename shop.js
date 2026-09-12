@@ -99,8 +99,8 @@
   /* ---------------- Read product data from a card ---------------- */
   function cardData(card) {
     if (!card) return null;
-    var nameEl = card.querySelector(".product-name, .bs-card-name, .p-name");
-    var priceEl = card.querySelector(".price-current, .product-price, .bs-card-price, .p-price");
+    var nameEl = card.querySelector(".product-name, .bs-card-name, .verm-label, .p-name");
+    var priceEl = card.querySelector(".price-current, .product-price, .bs-card-price, .verm-price, .p-price");
     var imgEl = card.querySelector("img");
     var name = nameEl ? nameEl.textContent.trim() : "Product";
     var price = priceEl ? parseInt(priceEl.textContent.replace(/[^\d]/g, ""), 10) || 0 : 0;
@@ -776,7 +776,7 @@
     document.addEventListener("click", function (e) {
       if (e.target.closest(".add-to-cart")) return;
       if (e.target.closest("a")) return;
-      var card = e.target.closest(".product-card, .bs-card");
+      var card = e.target.closest(".product-card, .bs-card, .verm-card");
       if (!card) return;
       openProductPage(card);
     });

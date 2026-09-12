@@ -6,7 +6,48 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ambika Flowers — Shop</title>
+<title>Ambika Flowers — Flower, Vermala &amp; Gift Delivery in Sikar</title>
+<meta name="description" content="Ambika Flowers — Sikar's trusted florist for 25+ years. Order fresh flower bouquets, wedding vermala &amp; garlands, gift hampers, balloon baskets, flower jewellery &amp; gajra online with same-day delivery. 25,000+ gifts delivered with love.">
+<meta name="keywords" content="Ambika Flowers, flower delivery Sikar, flowers Sikar, wedding vermala, varmala, flower bouquet Sikar, gift hamper, balloon basket, flower jewellery, gajra, same day flower delivery Sikar Rajasthan">
+<meta name="author" content="Ambika Flowers">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#e84393">
+<link rel="canonical" href="https://ambikaflowers.in/">
+<!-- Open Graph (WhatsApp / Facebook share preview) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ambika Flowers">
+<meta property="og:title" content="Ambika Flowers — Fresh Flowers, Vermala &amp; Gifts in Sikar">
+<meta property="og:description" content="Fresh flower bouquets, wedding vermala, gift hampers &amp; more — handcrafted &amp; delivered with love across Sikar. Same-day delivery, 25,000+ gifts delivered.">
+<meta property="og:url" content="https://ambikaflowers.in/">
+<meta property="og:image" content="https://ambikaflowers.in/logo.png">
+<meta property="og:locale" content="en_IN">
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ambika Flowers — Fresh Flowers, Vermala &amp; Gifts in Sikar">
+<meta name="twitter:description" content="Fresh flower bouquets, wedding vermala, gift hampers &amp; more — delivered with love across Sikar.">
+<meta name="twitter:image" content="https://ambikaflowers.in/logo.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Florist",
+  "name": "Ambika Flowers",
+  "image": "https://ambikaflowers.in/logo.png",
+  "url": "https://ambikaflowers.in/",
+  "telephone": "+91-98873-38459",
+  "priceRange": "₹₹",
+  "description": "Sikar's trusted florist for 25+ years — fresh flower bouquets, wedding vermala, gift hampers, balloon baskets, flower jewellery and gajra with same-day delivery.",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Gantagar, Near Gantagar",
+    "addressLocality": "Sikar",
+    "addressRegion": "Rajasthan",
+    "postalCode": "332001",
+    "addressCountry": "IN"
+  },
+  "openingHours": "Mo-Su 08:00-21:00",
+  "sameAs": []
+}
+</script>
 <script src="characters.js"></script>
 <style>
 
@@ -882,7 +923,7 @@
     var v = (list||[]).filter(function(p){ return String(p.category||"")==="Vermala"; }).slice(0,16);
     if(!v.length) return;
     slider.innerHTML = v.map(function(p){
-      return '<div class="verm-card" onclick="window.location=\'product2.html?id='+encodeURIComponent(p.id)+'\'" style="cursor:pointer">'+
+      return '<div class="verm-card" data-cust="'+esc(p.id)+'" style="cursor:pointer">'+
         '<div class="verm-img-wrap"><img src="'+esc(p.image||"")+'" alt="'+esc(p.title)+'" class="verm-img" loading="lazy" onerror="this.style.visibility=\'hidden\'"></div>'+
         '<div class="verm-label">'+esc(p.title)+'</div>'+
         '<div class="verm-price">'+price(p)+'</div></div>';
@@ -1142,7 +1183,7 @@ function buildBsSlider(cat){
   if (!list.length){ slider.innerHTML = '<div style="padding:34px 16px;color:#5b6b8c;font-size:14px;">Is category mein abhi products nahi hain.</div>'; return; }
   slider.innerHTML = list.map(function(p){
     var m = bsMoney(p);
-    return '<div class="bs-card" onclick="window.location=\'product2.html?id='+encodeURIComponent(p.id)+'\'">'+
+    return '<div class="bs-card" data-cust="'+bsEsc(p.id)+'" style="cursor:pointer">'+
       '<img src="'+bsEsc(p.image||"")+'" alt="'+bsEsc(p.title)+'" loading="lazy" style="object-position:center" onerror="this.style.visibility=\'hidden\'">'+
       '<div class="bs-card-info"><div class="bs-card-name">'+bsEsc(p.title)+'</div>'+
       '<div class="bs-card-prices"><span class="bs-card-price">'+m.cur+'</span>'+
