@@ -1512,7 +1512,7 @@
   function pageCategory() {
     // Works for both "/bouquet.html" and the clean "/bouquet" URL (Vercel cleanUrls)
     var f = (location.pathname.split("/").pop() || "").toLowerCase().replace(/\.html$/, "");
-    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry", "gajara": "Gajara", "car-decor": "Car Decor", "event-decor": "Event Decor", "balloon": "Balloon" };
+    var map = { "bouquet": "Bouquet", "hamper": "Hamper", "vermala": "Vermala", "flower-jewelry": "Flower Jewelry", "gajara": "Gajara", "car-decor": "Car Decor", "event-decor": "Event Decor", "balloon": "Balloon", "products": "__ALL__", "shop": "__ALL__" };
     return map[f] || null;
   }
   function homeCard(p, dp, img) {
@@ -1573,7 +1573,7 @@
   /* ---------------- Scroll-reveal animations (site-wide) ---------------- */
   function initReveal() {
     if (!("IntersectionObserver" in window)) return;
-    var sels = ".product-card, .occasion-card, .trust-item, .category-header, .bs-card, .card2, .order-card, .sig-slider .product-card, .hero-banner, .occasion-title, .sec-title";
+    var sels = ".product-card, .occasion-card, .trust-item, .category-header, .card2, .order-card, .hero-banner, .occasion-title, .sec-title";
     var els = Array.prototype.slice.call(document.querySelectorAll(sels));
     if (!els.length) return;
     var io = new IntersectionObserver(function (entries) {
@@ -1613,25 +1613,29 @@
   // database, so they always match what's actually on the page. Sub-filter buttons are
   // <li onclick="filterSub('rose',this)"> with a <span class="count">. Generic across
   // bouquet / hamper / vermala / flower-jewelry; a no-op if the page has no such list.
-  function updateCategoryCounts(items) {
-    var subCounts = {};
-    items.forEach(function (p) {
-      var s = String(p.tags || "").split(/[ ,]+/)[0].toLowerCase() || "all";
-      subCounts[s] = (subCounts[s] || 0) + 1;
+  function catSlug(c) { return String(c || "").toLowerCase().trim().replace(/\s+/g, "-"); }
+  // Count from the rendered cards' data-sub, so it works for both normal category
+  // pages (data-sub = tag) and the All Products page (data-sub = category slug).
+  function updateCategoryCounts() {
+    var counts = {}, total = 0;
+    document.querySelectorAll("#product-grid .product-card, #productGrid .product-card").forEach(function (c) {
+      var s = String(c.getAttribute("data-sub") || "").toLowerCase();
+      counts[s] = (counts[s] || 0) + 1; total++;
     });
     document.querySelectorAll('li[onclick^="filterSub"]').forEach(function (li) {
       var m = String(li.getAttribute("onclick") || "").match(/filterSub\(\s*['"]([^'"]*)['"]/);
       if (!m) return;
       var cnt = li.querySelector(".count"); if (!cnt) return;
       var key = m[1].toLowerCase();
-      cnt.textContent = key === "all" ? items.length : (subCounts[key] || 0);
+      cnt.textContent = key === "all" ? total : (counts[key] || 0);
     });
   }
   function renderCategoryGrid(list, comingSoon) {
     var pageCat = pageCategory();
     var grid = document.getElementById("product-grid") || document.getElementById("productGrid");
     if (!pageCat || !grid || !Array.isArray(list)) return false;
-    var items = list.filter(function (p) { return p && String(p.category || "") === pageCat; });
+    var isAll = (pageCat === "__ALL__");   // products.html / shop.html = every category
+    var items = isAll ? list.slice() : list.filter(function (p) { return p && String(p.category || "") === pageCat; });
     if (!items.length) {
       // The database is the source of truth. It has no products in this category, so
       // clear the page's old static cards and show a friendly empty state. (Callers only
@@ -1640,7 +1644,7 @@
       grid.innerHTML = '<div class="ak-cat-empty" style="grid-column:1/-1;text-align:center;padding:52px 18px;color:#a1758a;font-size:15px;line-height:1.6;">' +
         '<div style="font-size:42px;margin-bottom:10px;">🌸</div><b>Is category mein abhi koi product nahi hai.</b><br>Naye products jald hi add honge!</div>';
       var c0 = document.getElementById("product-count"); if (c0) c0.textContent = "Showing 0 products";
-      updateCategoryCounts([]);   // sidebar → all zeros
+      updateCategoryCounts();   // sidebar → all zeros
       return true;
     }
     grid.innerHTML = items.map(function (p) {
@@ -1650,8 +1654,14 @@
       var plabel = (p.priceLabel != null) ? String(p.priceLabel) : "";
       var priceHtml = comingSoon ? "Coming Soon"
         : (/[a-zऀ-ॿ]/i.test(plabel) ? esc(plabel) : ("₹" + Number(dp).toLocaleString("en-IN")));
-      var sub = String(p.tags || "").split(/[ ,]+/)[0].toLowerCase() || "all";
-      var subLabel = sub && sub !== "all" ? (sub.charAt(0).toUpperCase() + sub.slice(1) + " " + pageCat) : ("Fresh " + pageCat);
+      var sub, subLabel;
+      if (isAll) {
+        sub = catSlug(p.category);
+        subLabel = String(p.category || "Flowers");
+      } else {
+        sub = String(p.tags || "").split(/[ ,]+/)[0].toLowerCase() || "all";
+        subLabel = sub && sub !== "all" ? (sub.charAt(0).toUpperCase() + sub.slice(1) + " " + pageCat) : ("Fresh " + pageCat);
+      }
       var pid = String(p.id);
       var img = p.image || "";                  // the admin's own (edited) product image from the database
       return '<div class="product-card" data-sub="' + esc(sub) + '" data-price="' + dp + '" data-name="' + esc(p.title || "") + '" data-cust="' + esc(pid) + '">' +
@@ -1664,7 +1674,7 @@
     }).join("");
     var cnt = document.getElementById("product-count");
     if (cnt) cnt.textContent = "Showing all " + items.length + " products";
-    updateCategoryCounts(items);   // sidebar counts match the live DB
+    updateCategoryCounts();   // sidebar counts match the live DB
     return true;
   }
   function syncStorefrontPrices() {

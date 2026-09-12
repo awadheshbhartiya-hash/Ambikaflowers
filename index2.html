@@ -681,7 +681,7 @@
 
 <div class="category-chips">
   <div class="chips-inner">
-    <div class="chip" onclick="filterCat(event,'all')">
+    <div class="chip" onclick="window.location='products.html'">
       <div class="chip-icon-wrap"><svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <ellipse cx="40" cy="22" rx="7" ry="11" fill="#dbeafe" stroke="#1a3a5c" stroke-width="1.6"/>
   <ellipse cx="40" cy="22" rx="7" ry="11" fill="#dbeafe" stroke="#1a3a5c" stroke-width="1.6" transform="rotate(45 40 40)"/>
@@ -771,10 +771,23 @@
 </svg></div>
       <div class="chip-label">Vermala</div>
     </div>
-    
-    
-    
-    
+
+    <div class="chip" onclick="window.location='gajara.html'">
+      <div class="chip-icon-wrap"><svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- gajra string -->
+  <path d="M40 14 C 30 26, 30 40, 40 52 C 50 40, 50 26, 40 14 Z" stroke="#1a3a5c" stroke-width="2" fill="none"/>
+  <circle cx="40" cy="20" r="4.5" fill="#e05a9c" stroke="#1a3a5c" stroke-width="1.2"/>
+  <circle cx="34" cy="30" r="4.5" fill="#f2a0c8" stroke="#1a3a5c" stroke-width="1.2"/>
+  <circle cx="46" cy="30" r="4.5" fill="#f2a0c8" stroke="#1a3a5c" stroke-width="1.2"/>
+  <circle cx="34" cy="42" r="4.5" fill="#e05a9c" stroke="#1a3a5c" stroke-width="1.2"/>
+  <circle cx="46" cy="42" r="4.5" fill="#e05a9c" stroke="#1a3a5c" stroke-width="1.2"/>
+  <circle cx="40" cy="52" r="4.5" fill="#f2a0c8" stroke="#1a3a5c" stroke-width="1.2"/>
+  <circle cx="40" cy="63" r="3.5" fill="#16a34a" stroke="#1a3a5c" stroke-width="1.2"/>
+  <path d="M40 55 L40 60" stroke="#1a3a5c" stroke-width="1.4"/>
+</svg></div>
+      <div class="chip-label">Gajra</div>
+    </div>
+
   </div>
 </div>
 
@@ -795,23 +808,7 @@
        <div class="hero-banner-eyebrow">Celebrate Every Moment with</div>
        <div class="hero-banner-title">Fresh <span>Flowers</span> &amp; Thoughtful <span>Gifts</span></div>
        <div class="hero-banner-sub">Beautiful Flowers, Crafted with Love &amp; Delivered with Care.</div>
-       <a class="hero-banner-btn" href="#products-section">Shop Now &rarr;</a>
-     </div>
-   </section>
-  </div>
-  <div class="hero-slide">
-   <section class="hero-banner rakhi">
-     <span class="petal" style="top:16%;left:24%">🪢</span>
-     <span class="petal" style="top:62%;left:18%">🎁</span>
-     <span class="petal" style="top:24%;right:22%">🌼</span>
-     <span class="petal" style="top:68%;right:26%">🪢</span>
-     <span class="petal" style="top:12%;left:46%">✨</span>
-     <span class="petal" style="top:78%;right:42%">🎀</span>
-     <div class="hero-banner-content">
-       <div class="hero-banner-eyebrow">🪢 Raksha Bandhan Special</div>
-       <div class="hero-banner-title">Celebrate the Bond of <span>Love</span></div>
-       <div class="hero-banner-sub">Rakhi hampers, sweets &amp; fresh flowers for your bhai–behen — delivered with love. 🌸</div>
-       <a class="hero-banner-btn" href="hamper.html">Shop Rakhi Gifts &rarr;</a>
+       <a class="hero-banner-btn" href="products.html">Shop Now &rarr;</a>
      </div>
    </section>
   </div>
@@ -855,7 +852,7 @@
   </div>
   <div class="bs-tabs" id="bs-tabs">
     <button class="bs-tab active" data-cat="all" onclick="bsFilter(this,'all')">All</button>
-    <button class="bs-tab" data-cat="grand" onclick="bsFilter(this,'grand')">Bouquet</button>
+    <button class="bs-tab" data-cat="bouquet" onclick="bsFilter(this,'bouquet')">Bouquet</button>
     <button class="bs-tab" data-cat="teddy" onclick="bsFilter(this,'teddy')">Hamper</button>
     <button class="bs-tab" data-cat="balloon" onclick="bsFilter(this,'balloon')">Balloon</button>
     <button class="bs-tab" data-cat="mixed" onclick="bsFilter(this,'mixed')">Mixed Flowers</button>
@@ -867,7 +864,7 @@
     <button class="bs-arrow bs-arrow-right" onclick="document.getElementById('bs-slider').scrollBy({left:320,behavior:'smooth'})">&#8250;</button>
   </div>
   <div style="text-align:center;margin-top:28px;">
-    <button class="bs-view-all" onclick="document.getElementById('products-section').scrollIntoView({behavior:'smooth'})">View All Products &rsaquo;</button>
+    <button class="bs-view-all" onclick="window.location='products.html'">View All Products &rsaquo;</button>
   </div>
 </section>
 
