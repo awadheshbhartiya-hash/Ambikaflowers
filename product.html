@@ -200,23 +200,17 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
   var pdPriceEl = document.getElementById("pd-price");
   var giftNote = '';
   function showPd(txt){ pdPriceEl.innerHTML = txt + giftNote; }
-  showPd("Coming Soon");
-  // Respect the global "Coming Soon" toggle; otherwise show the live price from the database
-  Promise.all([
-    fetch("/api/settings").then(function(r){return r.ok?r.json():{};}).catch(function(){return {};}),
-    fetch("/api/products",{cache:"no-store"}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];})
-  ]).then(function(res){
-    var settings = res[0]||{}, list = res[1]||[];
-    if(settings.comingSoon){ showPd("Coming Soon"); return; }
-    var match = null, key = String(name).trim().toLowerCase();
-    if(Array.isArray(list)){ for(var i=0;i<list.length;i++){ var t=(list[i].title||list[i].name||"").trim().toLowerCase(); if(t===key){ match=list[i]; break; } } }
-    var pr = match ? (match.discount ? Math.round(match.price*(1-match.discount/100)) : match.price) : price;
-    // If the admin typed letters in the price (e.g. "1499+ toffee"), show that exact
-    // text here too — so the price is identical on the card and the product page.
-    var plbl = (match && match.priceLabel != null) ? String(match.priceLabel) : "";
-    if(/[a-zऀ-ॿ]/i.test(plbl)) showPd(plbl);
-    else showPd(pr > 0 ? "₹" + Number(pr).toLocaleString("en-IN") : "Coming Soon");
-  });
+  // Show the exact price from the clicked product card IMMEDIATELY (e.g. "₹899",
+  // or "999 onwards", or "Coming Soon" if that's what the card showed). This avoids
+  // downloading the whole product list here — which is large and left the page stuck
+  // on "Coming Soon" while it loaded on slower connections.
+  var priceText = (prod.priceText != null && String(prod.priceText).trim()) ? String(prod.priceText).trim() : "";
+  showPd(priceText || (price > 0 ? "₹" + Number(price).toLocaleString("en-IN") : "Coming Soon"));
+  // Only override to "Coming Soon" if the owner has turned on the global Coming-Soon
+  // mode (a tiny, fast settings fetch — no big product download).
+  fetch("/api/settings").then(function(r){ return r.ok ? r.json() : {}; }).then(function(s){
+    if(s && s.comingSoon) showPd("Coming Soon");
+  }).catch(function(){});
   var imgEl = document.getElementById("pd-img");
   imgEl.onerror = function(){ this.style.visibility = "hidden"; };
   imgEl.alt = name;

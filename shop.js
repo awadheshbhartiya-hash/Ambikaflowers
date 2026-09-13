@@ -105,7 +105,8 @@
     var name = nameEl ? nameEl.textContent.trim() : "Product";
     var price = priceEl ? parseInt(priceEl.textContent.replace(/[^\d]/g, ""), 10) || 0 : 0;
     var img = imgEl ? imgEl.getAttribute("src") : "";
-    return { id: slug(name), name: name, price: price, img: img };
+    var priceText = priceEl ? priceEl.textContent.trim() : "";
+    return { id: slug(name), name: name, price: price, priceText: priceText, img: img };
   }
 
   /* ---------------- Badges ---------------- */
