@@ -806,8 +806,20 @@
     },
     orderFilter: function (s) { orderFilter = s; go("orders"); },
     productFilter: function (c) { productCatFilter = c; go("products"); },
-    setStatus: function (id, s) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) { x.status = s; x.statusIdx = (s === "Cancelled") ? "Cancelled" : FLORAL.indexOf(s); } }); lsSave("ambika_orders", o); notify("Order " + id + " → " + s + " (synced to live tracker)"); },
-    setTrack: function (id, t) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) x.track = t; }); lsSave("ambika_orders", o); notify("Tracking saved for " + id); },
+    setStatus: function (id, s) {
+      function apply() { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) { x.status = s; x.statusIdx = (s === "Cancelled") ? "Cancelled" : FLORAL.indexOf(s); } }); lsSave("ambika_orders", o); }
+      apply();
+      // Persist to the database so it survives the periodic refresh (and reaches the customer's tracker).
+      apiSend("PUT", "/api/orders/" + encodeURIComponent(id), { status: s })
+        .then(function () { apply(); notify("Order " + id + " → " + s + " (saved)"); if (current === "orders" || current === "dashboard") go(current); })
+        .catch(function () { if (typeof toast === "function") toast("Could not save status — please try again"); });
+    },
+    setTrack: function (id, t) {
+      var o = freshOrders(); o.forEach(function (x) { if (x.id === id) x.track = t; }); lsSave("ambika_orders", o);
+      apiSend("PUT", "/api/orders/" + encodeURIComponent(id), { track: t })
+        .then(function () { notify("Tracking saved for " + id); })
+        .catch(function () { if (typeof toast === "function") toast("Could not save tracking — please try again"); });
+    },
     deleteOrder: function (id) {
       if (!confirm("Delete order " + id + "?\nThis will remove it permanently from the database.")) return;
       apiSend("DELETE", "/api/orders/" + encodeURIComponent(id))
