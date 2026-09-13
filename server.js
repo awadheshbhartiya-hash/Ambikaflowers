@@ -192,17 +192,23 @@ function writeStore(s) {
 // v8 = adds 27 Vermala products (products/varmala/*, rose-vermala / mixed-flower-vermala).
 // v9 = adds 15 Flower Jewelry products (garland / hair / wristlet).
 // v10 = adds 9 Hamper products (flower-hamper / gift-hamper / chocolate-hamper). All 4 categories now filled.
-const CATALOG_VERSION = 11;
+const CATALOG_VERSION = 12;
 let store = readStore();
 if (!store || typeof store !== "object") store = {};
 if (!Array.isArray(store.orders)) store.orders = [];
 if (!Array.isArray(store.customers)) store.customers = [];
 if (!store.settings || typeof store.settings !== "object") store.settings = {};
 if (typeof store.settings.comingSoon !== "boolean") store.settings.comingSoon = false;
-if (!Array.isArray(store.products) || store.products.length === 0 || store.catalogVersion !== CATALOG_VERSION) {
-  store.products = loadSeed();          // catalogue always comes from the bundled seed
-  store.catalogVersion = CATALOG_VERSION;
+if (!Array.isArray(store.products)) store.products = [];
+if (store.products.length === 0) {
+  store.products = loadSeed();          // empty store → take the whole bundled seed
+} else if (store.catalogVersion !== CATALOG_VERSION) {
+  // additive merge (local JSON store): add seed products with new ids, keep existing edits
+  var _seed = loadSeed(); var _have = {};
+  store.products.forEach(function (p) { _have[String(p.id)] = true; });
+  (Array.isArray(_seed) ? _seed : []).forEach(function (p) { if (!_have[String(p.id)]) store.products.push(p); });
 }
+store.catalogVersion = CATALOG_VERSION;
 writeStore(store);
 function save() { writeStore(store); }
 function rid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -247,22 +253,26 @@ async function loadFromSupabase() {
   } catch (e) { console.error("SB settings load failed:", e.message); }
   try {
     if (seedVersion !== CATALOG_VERSION) {
-      // A new catalogue version shipped → the bundled seed is the source of truth.
-      // v5's seed is EMPTY, so this clears every old product from the live database
-      // exactly once. The marker below is stored in Supabase (permanent), so products
-      // the shopkeeper adds later from the admin panel are NEVER wiped on a restart.
+      // A new catalogue version shipped. MERGE the seed additively so the shopkeeper's
+      // admin edits are NEVER lost: seed products whose id is not already in the
+      // database are inserted; existing products (and any admin edits) are kept, and
+      // nothing is deleted.
       const seed = loadSeed();
-      store.products = Array.isArray(seed) ? seed : [];
-      const rows = productRows(store.products);
-      if (rows.length) {
-        await sbUpsertBatch("products", rows);
-        await sbDelete("products", "id=not.in.(" + rows.map(function (r) { return r.id; }).join(",") + ")");
-      } else {
-        await sbDelete("products", "id=neq.__none__");   // no seed rows → remove ALL products
-      }
+      const seedRows = Array.isArray(seed) ? seed : [];
+      let existingIds = {};
+      try {
+        const existing = await sbGet("products?select=id");
+        if (Array.isArray(existing)) existing.forEach(function (r) { existingIds[String(r.id)] = true; });
+      } catch (e) { console.error("SB existing-id load failed:", e.message); }
+      const toAdd = seedRows.filter(function (p) { return !existingIds[String(p.id)]; });
+      if (toAdd.length) { try { await sbUpsertBatch("products", productRows(toAdd)); } catch (e) { console.error("SB seed merge failed:", e.message); } }
       store.settings.seedVersion = CATALOG_VERSION;
       try { await sbUpsert("settings", [{ id: "global", data: store.settings }]); } catch (e2) { console.error("SB seedVersion save failed:", e2.message); }
-      console.log("Catalogue reset to seed v" + CATALOG_VERSION + " (" + rows.length + " products)");
+      try {
+        const prods = await sbGet("products?select=data");
+        store.products = (Array.isArray(prods) ? prods : []).map(function (r) { return r.data; }).filter(Boolean);
+      } catch (e) { console.error("SB products reload failed:", e.message); }
+      console.log("Catalogue merged to seed v" + CATALOG_VERSION + " (added " + toAdd.length + " new products)");
     } else {
       const prods = await sbGet("products?select=data");
       store.products = (Array.isArray(prods) ? prods : []).map(function (r) { return r.data; }).filter(Boolean);   // Supabase = source of truth
