@@ -484,7 +484,7 @@
             '<td>' + esc(o.deliveryDate || "—") + '<br><small style="color:var(--ink2);">' + esc(o.slot || "") + '</small></td>' +
             '<td><select class="status-sel" onchange="ADMIN.setStatus(\'' + esc(o.id) + '\',this.value)">' + opts + '</select></td>' +
             '<td><input class="track-in" placeholder="Add #" value="' + esc(o.track || "") + '" onchange="ADMIN.setTrack(\'' + esc(o.id) + '\',this.value)"></td>' +
-            '<td><button class="mini-btn" onclick="ADMIN.order(\'' + esc(o.id) + '\')">View</button></td></tr>';
+            '<td style="white-space:nowrap;"><button class="mini-btn" onclick="ADMIN.order(\'' + esc(o.id) + '\')">View</button> <button class="mini-btn danger" onclick="ADMIN.deleteOrder(\'' + esc(o.id) + '\')">Delete</button></td></tr>';
         }).join("") : '<tr><td colspan="8" style="text-align:center;color:var(--ink2);padding:30px;">No orders yet — they’ll appear here live when customers check out. 🌸</td></tr>') +
       '</tbody></table></div></div>';
   };
@@ -788,6 +788,20 @@
     orderFilter: function (s) { orderFilter = s; go("orders"); },
     setStatus: function (id, s) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) { x.status = s; x.statusIdx = (s === "Cancelled") ? "Cancelled" : FLORAL.indexOf(s); } }); lsSave("ambika_orders", o); notify("Order " + id + " → " + s + " (synced to live tracker)"); },
     setTrack: function (id, t) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) x.track = t; }); lsSave("ambika_orders", o); notify("Tracking saved for " + id); },
+    deleteOrder: function (id) {
+      if (!confirm("Delete order " + id + "?\nThis will remove it permanently from the database.")) return;
+      apiSend("DELETE", "/api/orders/" + encodeURIComponent(id))
+        .then(function () {
+          orders = (orders || []).filter(function (x) { return String(x.id) !== String(id); });
+          saveOrders();
+          try { var ls = (JSON.parse(localStorage.getItem("ambika_orders")) || []).filter(function (x) { return String(x.id) !== String(id); }); localStorage.setItem("ambika_orders", JSON.stringify(ls)); } catch (e) {}
+          _lastOrderN = orders.length;
+          notify("Order " + id + " deleted from the database");
+          if (typeof toast === "function") toast("🗑️ Order " + id + " deleted");
+          if (current === "orders" || current === "dashboard") go(current);
+        })
+        .catch(function () { if (typeof toast === "function") toast("Could not delete the order — please try again"); });
+    },
     invoice: function (id) { notify("Invoice " + id + " downloaded (demo)"); },
     customer: function (id) {
       var c = customers.filter(function (x) { return x.id === id; })[0]; if (!c) return;

@@ -313,9 +313,9 @@ app.post("/api/auth/login", (req, res) => {
   const password = String(b.password || "");
   if (!idIn || !password) return res.status(400).json({ error: "Email/phone aur password daalein." });
   const rec = authByKey[idIn];
-  if (!rec || !verifyPw(password, rec.hash)) return res.status(401).json({ error: "Galat email/phone ya password." });
+  if (!rec || !verifyPw(password, rec.hash)) return res.status(401).json({ error: "Incorrect email/phone or password." });
   const cust = store.customers.find(function (c) { return c.id === rec.id; });
-  if (!cust) return res.status(401).json({ error: "Account nahi mila." });
+  if (!cust) return res.status(401).json({ error: "Account not found." });
   res.json({ user: publicCustomer(cust), token: makeToken(cust.id) });
 });
 
@@ -334,7 +334,7 @@ app.post("/api/admin/login", (req, res) => {
     if (ADMIN_PASS_HASH) ok = verifyPw(p, ADMIN_PASS_HASH);
     else { const A = Buffer.from(p), B = Buffer.from(ADMIN_PASS); ok = A.length === B.length && crypto.timingSafeEqual(A, B); }
   }
-  if (!ok) { noteLoginFail(ip); return res.status(401).json({ error: "Galat username ya password." }); }
+  if (!ok) { noteLoginFail(ip); return res.status(401).json({ error: "Incorrect username or password." }); }
   delete adminFails[ip];
   res.json({ token: makeAdminToken(), ttl: ADMIN_TTL });
 });
@@ -424,6 +424,19 @@ app.put("/api/orders/:id", requireAdmin, async (req, res) => {
   const o = store.orders[i];
   if (SB_ON) { try { await sbUpsert("orders", [{ id: o.id, data: o, created_at: o.createdAt || Date.now() }]); } catch (e) { console.error("SB order update failed:", e.message); } }
   res.json(o);
+});
+app.delete("/api/orders/:id", requireAdmin, async (req, res) => {   // delete one (admin)
+  if (SB_ON) {
+    try { await sbDelete("orders", "id=eq." + encodeURIComponent(req.params.id)); }
+    catch (e) {
+      console.error("SB order delete failed:", e.message);
+      return res.status(502).json({ error: "Could not delete from the database: " + e.message });
+    }
+  }
+  const before = store.orders.length;
+  store.orders = store.orders.filter(o => String(o.id) !== req.params.id);
+  save();
+  res.json({ ok: true, removed: before - store.orders.length });
 });
 
 // CUSTOMERS (profile / address upsert — never touches the password)
