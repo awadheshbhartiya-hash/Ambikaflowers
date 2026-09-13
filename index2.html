@@ -1180,7 +1180,7 @@ function buildBsSlider(cat){
   if (cat==="all") list = bsMixed(BS_ALL);
   else list = BS_ALL.filter(function(p){ return String(p.category||"")===BS_TAB[cat]; });
   list = list.slice(0, 20);
-  if (!list.length){ slider.innerHTML = '<div style="padding:34px 16px;color:#5b6b8c;font-size:14px;">Is category mein abhi products nahi hain.</div>'; return; }
+  if (!list.length){ slider.innerHTML = '<div style="padding:34px 16px;color:#5b6b8c;font-size:14px;">There are no products in this category yet.</div>'; return; }
   slider.innerHTML = list.map(function(p){
     var m = bsMoney(p);
     return '<div class="bs-card" data-cust="'+bsEsc(p.id)+'" style="cursor:pointer">'+

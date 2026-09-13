@@ -181,7 +181,7 @@
     mirrorLocalProducts();
     return fetch(RAILWAY + "/api/products", { method: "PUT", headers: authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(products) })
       .then(function (r) { if (!r.ok) { onAuthFail(r.status); return Promise.reject(r.status); } return r.json(); })
-      .catch(function (e) { if (typeof toast === "function") toast("⚠️ Save nahi hua (" + e + ") — dobara try karo"); return Promise.reject(e); });
+      .catch(function (e) { if (typeof toast === "function") toast("⚠️ Save failed (" + e + ") — please try again"); return Promise.reject(e); });
   }
   // Save just ONE product (add / edit / delete). Keeps every request small — a single
   // base64 photo is only a few MB, so it never blows the server's body limit even when
@@ -211,7 +211,7 @@
         if (typeof e === "number") return Promise.reject(e);
         return hit(RAILWAY + tailp);
       })
-      .catch(function (e) { if (typeof toast === "function") toast("⚠️ Save nahi hua (" + e + ") — dobara try karo"); return Promise.reject(e); });
+      .catch(function (e) { if (typeof toast === "function") toast("⚠️ Save failed (" + e + ") — please try again"); return Promise.reject(e); });
   }
   var products = (function () {
     var existing = null; try { existing = JSON.parse(localStorage.getItem("ambika_products")); } catch (e) {}
@@ -313,7 +313,7 @@
   function hdBanner() {
     return '<div class="card" id="hdCard" style="margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-left:5px solid #6c5ce7;">' +
       '<div><div style="font-weight:800;font-size:16px;color:var(--ink);">🖼️ Product Photos — HD Upgrade</div>' +
-      '<div class="sub" style="margin:4px 0 0;">Ek baar click karo — poora HD catalogue (nayi clear bouquet photos + naye products) live ho jayega. Prices baad mein yahin admin se set kar lena.</div></div>' +
+      '<div class="sub" style="margin:4px 0 0;">Click once — the full HD catalogue (new, clearer bouquet photos + new products) goes live. You can set prices here in the admin afterwards.</div></div>' +
       '<button class="btn btn-primary" id="hdBtn" onclick="ADMIN.upgradePhotos()">✨ Load HD Catalogue</button>' +
       '</div>';
   }
@@ -749,7 +749,7 @@
     go: go,
     upgradePhotos: function () {
       var btn = document.getElementById("hdBtn");
-      if (btn) { btn.disabled = true; btn.textContent = "⏳ HD photos load ho rahe hain…"; }
+      if (btn) { btn.disabled = true; btn.textContent = "⏳ Loading HD photos…"; }
       if (typeof toast === "function") toast("HD photos taiyaar kiye ja rahe hain…");
       fetch("/catalog-seed.json?v=" + Date.now())
         .then(function (r) { if (!r.ok) return Promise.reject(r.status); return r.json(); })
@@ -764,14 +764,14 @@
             .then(function (r) { if (!r.ok) return Promise.reject(r.status); return r.json(); })
             .then(function () {
               var n = list.length;
-              if (typeof toast === "function") toast("✅ " + n + " products HD catalogue live! Website refresh karo.");
+              if (typeof toast === "function") toast("✅ " + n + " products — HD catalogue is live! Refresh the website.");
               notify("🖼️ HD catalogue loaded — " + n + " products");
               if (btn) { btn.disabled = false; btn.textContent = "✅ Done — " + n + " products (HD)"; }
               go(current || "products");
             });
         })
         .catch(function (err) {
-          if (typeof toast === "function") toast("⚠️ HD catalogue load nahi hua (" + err + ") — dobara try karo");
+          if (typeof toast === "function") toast("⚠️ HD catalogue failed to load (" + err + ") — please try again");
           if (btn) { btn.disabled = false; btn.textContent = "✨ Load HD Catalogue"; }
         });
     },
@@ -836,7 +836,7 @@
     delProduct: function (id) {
       var p = products.filter(function (x) { return x.id === id; })[0];
       if (!p) return;
-      if (!confirm('Delete "' + p.title + '"?\nYe product hamesha ke liye hat jayega.')) return;
+      if (!confirm('Delete "' + p.title + '"?\nThis product will be deleted permanently.')) return;
       var i = products.map(function (x) { return x.id; }).indexOf(id);
       if (i > -1) products.splice(i, 1);
       saveOneProduct("DELETE", "/" + encodeURIComponent(id));   // remove just this one on the server
@@ -892,7 +892,7 @@
         }
         try { mirrorLocalProducts(); } catch (e) {}
         if (current === "products") refreshProductTable();
-        notify("❌ Save nahi hua — database tak nahi pahuncha. Dobara try karein.");
+        notify("❌ Save failed — couldn't reach the database. Please try again.");
       });
     },
     /* ---- Corporate Leads actions ---- */
@@ -1172,7 +1172,7 @@
         })
         .catch(function () {
           if (btn) btn.disabled = false;
-          setLoginErr("Server se connect nahi ho paya. Thodi der baad try karein.");
+          setLoginErr("Couldn't connect to the server. Please try again in a moment.");
         });
     });
     setTimeout(function () { try { $("#loginUser").focus(); } catch (e) {} }, 100);

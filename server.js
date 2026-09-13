@@ -134,7 +134,7 @@ function bearer(req) {
 }
 function requireAdmin(req, res, next) {
   if (verifyAdminToken(bearer(req))) return next();
-  return res.status(401).json({ error: "Admin login zaroori hai." });
+  return res.status(401).json({ error: "Admin login required." });
 }
 
 /* brute-force protection: after 5 failed admin logins, lock that IP for 15 minutes */
@@ -291,9 +291,9 @@ app.post("/api/auth/signup", async (req, res) => {
   const email = String(b.email || "").trim().toLowerCase();
   const phone = String(b.phone || "").trim();
   const password = String(b.password || "");
-  if (!name || (!email && !phone) || password.length < 6) return res.status(400).json({ error: "Naam, email ya phone, aur kam se kam 6 character ka password zaroori hai." });
-  if (email && authByKey[email]) return res.status(409).json({ error: "Ye email pehle se registered hai — login karein." });
-  if (phone && authByKey[phone]) return res.status(409).json({ error: "Ye phone pehle se registered hai — login karein." });
+  if (!name || (!email && !phone) || password.length < 6) return res.status(400).json({ error: "Name, an email or phone, and a password of at least 6 characters are required." });
+  if (email && authByKey[email]) return res.status(409).json({ error: "This email is already registered — please log in." });
+  if (phone && authByKey[phone]) return res.status(409).json({ error: "This phone number is already registered — please log in." });
   const id = rid("CUST");
   const hash = hashPw(password);
   const cust = { id: id, name: name, email: email, phone: phone, address: String(b.address || "").trim(), createdAt: Date.now() };
@@ -324,8 +324,8 @@ app.post("/api/auth/login", (req, res) => {
 app.post("/api/admin/login", (req, res) => {
   const ip = clientIp(req);
   const wait = loginLockedFor(ip);
-  if (wait) return res.status(429).json({ error: "Bahut zyada galat koshish. " + wait + " second baad try karein." });
-  if (!ADMIN_CONFIGURED) return res.status(503).json({ error: "Admin abhi set nahi hua — Railway mein ADMIN_PASS set karein." });
+  if (wait) return res.status(429).json({ error: "Too many failed attempts. Please try again in " + wait + " seconds." });
+  if (!ADMIN_CONFIGURED) return res.status(503).json({ error: "Admin is not set up yet — set ADMIN_PASS in Railway." });
   const b = req.body || {};
   const u = String(b.username || "").trim();
   const p = String(b.password || "");
@@ -358,7 +358,7 @@ app.put("/api/products", requireAdmin, async (req, res) => {          // admin b
       }
     } catch (e) {
       console.error("SB products bulk save failed:", e.message);
-      return res.status(502).json({ error: "Database mein save nahi hua: " + e.message });
+      return res.status(502).json({ error: "Could not save to the database: " + e.message });
     }
   }
   store.products = req.body; save();
@@ -372,7 +372,7 @@ app.post("/api/products", requireAdmin, async (req, res) => {         // add one
     try { await sbUpsert("products", productRows([p])); }
     catch (e) {
       console.error("SB product add failed:", e.message);
-      return res.status(502).json({ error: "Database mein save nahi hua: " + e.message });
+      return res.status(502).json({ error: "Could not save to the database: " + e.message });
     }
   }
   store.products.unshift(p); save();
@@ -386,7 +386,7 @@ app.put("/api/products/:id", requireAdmin, async (req, res) => {      // update 
     try { await sbUpsert("products", productRows([updated])); }
     catch (e) {
       console.error("SB product update failed:", e.message);
-      return res.status(502).json({ error: "Database mein save nahi hua: " + e.message });
+      return res.status(502).json({ error: "Could not save to the database: " + e.message });
     }
   }
   store.products[i] = updated; save();
@@ -397,7 +397,7 @@ app.delete("/api/products/:id", requireAdmin, async (req, res) => {   // delete 
     try { await sbDelete("products", "id=eq." + encodeURIComponent(req.params.id)); }
     catch (e) {
       console.error("SB product delete failed:", e.message);
-      return res.status(502).json({ error: "Database se delete nahi hua: " + e.message });
+      return res.status(502).json({ error: "Could not delete from the database: " + e.message });
     }
   }
   const before = store.products.length;

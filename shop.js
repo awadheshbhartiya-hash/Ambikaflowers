@@ -381,7 +381,7 @@
     if (window.AmbikaTrack) try { window.AmbikaTrack.logActivity("cart", "💳", window.AmbikaTrack.visitorName() + " started checkout (₹" + subtotal() + ")"); } catch (e) {}
     if (cart.length === 0) { toast("Your cart is empty"); return; }
     // Login is required before ordering — so we capture the customer + address
-    if (!user) { toast("Order karne ke liye pehle login / signup karein 🌸", false); closeCart(); openAuth("login"); return; }
+    if (!user) { toast("Please log in or sign up to place an order 🌸", false); closeCart(); openAuth("login"); return; }
     if (window.AmbikaPay && window.AmbikaPay.openCheckout) {
       var payload = {
         items: cart.map(function (i) { return { name: i.name, price: i.price, img: i.img, qty: i.qty }; }),
@@ -415,7 +415,7 @@
     var shown = login ? lf : sf;
     shown.classList.remove("ak-fade"); void shown.offsetWidth; shown.classList.add("ak-fade");
     document.getElementById("ak-auth-title").textContent = login ? "Welcome Back" : "Create Account";
-    document.getElementById("ak-auth-sub").textContent = login ? "Apne password se login karein 🌸" : "Join the Ambika Flowers family 🌷";
+    document.getElementById("ak-auth-sub").textContent = login ? "Sign in with your password 🌸" : "Join the Ambika Flowers family 🌷";
   }
 
   /* ---- Login sub-panes (OTP / code / password) ---- */
@@ -602,11 +602,11 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; }
-        if (!res.ok) { var em = (res.d && res.d.error) || "Login nahi hua"; setErr("l-pw", true, em); toast(em); return; }
+        if (!res.ok) { var em = (res.d && res.d.error) || "Login failed"; setErr("l-pw", true, em); toast(em); return; }
         finishAuth(Object.assign({ role: "customer" }, res.d.user), res.d.token);
         toast("Welcome back, " + firstName() + "! 🌸", true);
       })
-      .catch(function () { if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; } toast("Server tak nahi pahuncha, dobara try karein"); });
+      .catch(function () { if (sbtn) { sbtn.disabled = false; sbtn.style.opacity = ""; } toast("Couldn't reach the server. Please try again."); });
   }
 
   function onSignup(e) {
@@ -628,11 +628,11 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
         if (btn) { btn.disabled = false; btn.style.opacity = ""; }
-        if (!res.ok) { toast((res.d && res.d.error) || "Signup nahi hua, dobara try karein"); return; }
+        if (!res.ok) { toast((res.d && res.d.error) || "Sign-up failed. Please try again."); return; }
         finishAuth(Object.assign({ role: "customer" }, res.d.user), res.d.token);
-        toast("Account ban gaya — welcome, " + firstName() + "! 🌸", true);
+        toast("Account created — welcome, " + firstName() + "! 🌸", true);
       })
-      .catch(function () { if (btn) { btn.disabled = false; btn.style.opacity = ""; } toast("Server tak nahi pahuncha, dobara try karein"); });
+      .catch(function () { if (btn) { btn.disabled = false; btn.style.opacity = ""; } toast("Couldn't reach the server. Please try again."); });
   }
 
   function finishAuth(u, token) {
@@ -1239,7 +1239,7 @@
       return '<div class="pay-panel"><div style="text-align:center;padding:22px 14px;">' +
         '<div style="font-size:40px;margin-bottom:8px;">🔐</div>' +
         '<div style="font-size:16px;font-weight:800;color:#3a2540;margin-bottom:6px;">Secure Online Payment</div>' +
-        '<div style="font-size:13.5px;color:#666;line-height:1.5;">“<b>Confirm &amp; Pay</b>” dabate hi Razorpay ka secure window khulega — usme <b>UPI, GPay/PhonePe/Paytm, Cards, Net Banking &amp; Wallets</b> sab hain. Payment hote hi order apne aap confirm ho jayega.</div>' +
+        '<div style="font-size:13.5px;color:#666;line-height:1.5;">Tapping “<b>Confirm &amp; Pay</b>” opens Razorpay’s secure window with <b>UPI, GPay/PhonePe/Paytm, Cards, Net Banking &amp; Wallets</b>. Your order is confirmed automatically as soon as the payment succeeds.</div>' +
         '</div><div class="pay-secure">🔒 100% Secure · Powered by Razorpay</div></div>';
     }
     return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay ₹' + amount + ' in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
@@ -1300,7 +1300,7 @@
         '<div class="pay-methods" id="pay-methods">' +
           '<div class="pay-m sel" data-m="cod"><span class="pe">💵</span>Cash on Delivery</div>' +
         '</div>' +
-        '<div style="background:#fff0f6;border:1px dashed #e84393;border-radius:12px;padding:11px 13px;margin:2px 0 4px;font-size:13px;color:#7a1f4e;line-height:1.5;">🏷️ Iss product ki pricing abhi finalise ho rahi hai. Abhi <b>Cash on Delivery</b> se order karein — hum aapko call karke final price &amp; details confirm kar denge. 🌸</div>';
+        '<div style="background:#fff0f6;border:1px dashed #e84393;border-radius:12px;padding:11px 13px;margin:2px 0 4px;font-size:13px;color:#7a1f4e;line-height:1.5;">🏷️ Pricing for this product is being finalised. For now, please order with <b>Cash on Delivery</b> — we’ll call you to confirm the final price &amp; details. 🌸</div>';
     } else {
       methodsHtml =
         '<div class="pay-methods" id="pay-methods">' +
@@ -1323,7 +1323,7 @@
         '<div class="pay-fld"><label>Time Slot</label><select id="pay-slot"><option>9 AM – 12 PM</option><option>12 PM – 3 PM</option><option selected>3 PM – 6 PM</option><option>6 PM – 9 PM</option></select></div>' +
         '<div class="pay-fld full"><label>Delivery Address</label><input id="pay-addr" placeholder="Full delivery address" value="' + esc(prefillAddr) + '"></div>' +
         '<div class="pay-fld full"><label>Gift Card Message (optional)</label><textarea id="pay-gift" rows="2" placeholder="Write a sweet note…"></textarea></div>' +
-        '<div class="pay-fld full"><label>Customization / Special Request (optional)</label><textarea id="pay-custom" rows="2" placeholder="Koi customization chahiye? Jaise colour, flower type, packing, ya koi khaas message — yahan likho…"></textarea></div>' +
+        '<div class="pay-fld full"><label>Customization / Special Request (optional)</label><textarea id="pay-custom" rows="2" placeholder="Need any customization? Colour, flower type, packing, or a special message — write it here…"></textarea></div>' +
       '</div>' +
       methodsHtml +
       '<div id="pay-panel">' + methodPanel(payState.method, total) + '</div>' +
@@ -1359,14 +1359,14 @@
     var s = document.createElement("script");
     s.src = "https://checkout.razorpay.com/v1/checkout.js";
     s.onload = function () { cb(); };
-    s.onerror = function () { toast("Payment window load nahi hua — internet check karo"); };
+    s.onerror = function () { toast("The payment window failed to load — please check your internet"); };
     document.head.appendChild(s);
   }
   function confirmPay() {
     // Delivery address is compulsory
     var addrEl = el("pay-addr");
     if (!addrEl || !addrEl.value.trim()) {
-      toast("Delivery address daalna zaroori hai 🌸");
+      toast("Please enter a delivery address 🌸");
       if (addrEl) { addrEl.focus(); addrEl.style.borderColor = "#e84393"; addrEl.scrollIntoView({ behavior: "smooth", block: "center" }); }
       return;
     }
@@ -1381,7 +1381,7 @@
       .then(function (r) { return r.json(); })
       .then(function (o) {
         reset();
-        if (!o || !o.id) { toast(o && o.error ? o.error : "Payment shuru nahi hua, dobara try karo"); return; }
+        if (!o || !o.id) { toast(o && o.error ? o.error : "Couldn't start the payment. Please try again."); return; }
         ensureRazorpay(function () {
           var u = (payState.payload && payState.payload.user) || {};
           var rzp = new window.Razorpay({
@@ -1394,17 +1394,17 @@
                 .then(function (r) { return r.json(); })
                 .then(function (v) {
                   if (v && v.ok) finalizeOrder("Online (Razorpay)", "Paid", resp.razorpay_payment_id || "");
-                  else toast("Payment verify nahi hua — support se baat karo");
+                  else toast("Payment could not be verified — please contact support.");
                 })
                 .catch(function () { finalizeOrder("Online (Razorpay)", "Paid", resp.razorpay_payment_id || ""); });
             },
-            modal: { ondismiss: function () { toast("Payment cancel ho gaya"); } }
+            modal: { ondismiss: function () { toast("Payment cancelled."); } }
           });
-          try { rzp.on("payment.failed", function () { toast("Payment fail ho gaya, dobara try karo"); }); } catch (e) {}
+          try { rzp.on("payment.failed", function () { toast("Payment failed. Please try again."); }); } catch (e) {}
           rzp.open();
         });
       })
-      .catch(function () { reset(); toast("Payment server tak nahi pahuncha, dobara try karo"); });
+      .catch(function () { reset(); toast("Couldn't reach the payment server. Please try again."); });
   }
   function finalizeOrder(methodName, paymentStatus, reference) {
     var p = payState.payload;
@@ -1642,7 +1642,7 @@
       // pass a real array here when the backend responded — a network failure keeps the
       // static cards instead, see syncStorefrontPrices.)
       grid.innerHTML = '<div class="ak-cat-empty" style="grid-column:1/-1;text-align:center;padding:52px 18px;color:#a1758a;font-size:15px;line-height:1.6;">' +
-        '<div style="font-size:42px;margin-bottom:10px;">🌸</div><b>Is category mein abhi koi product nahi hai.</b><br>Naye products jald hi add honge!</div>';
+        '<div style="font-size:42px;margin-bottom:10px;">🌸</div><b>There are no products in this category yet.</b><br>New products will be added soon!</div>';
       var c0 = document.getElementById("product-count"); if (c0) c0.textContent = "Showing 0 products";
       updateCategoryCounts();   // sidebar → all zeros
       return true;
