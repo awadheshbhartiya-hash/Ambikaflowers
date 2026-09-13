@@ -362,11 +362,10 @@
     }).join("");
 
     var sub = subtotal();
-    var delivery = sub >= FREE_ABOVE ? 0 : DELIVERY_FEE;
-    var deliveryHtml = delivery === 0 ? '<span class="free">FREE</span>' : money(delivery);
+    var delivery = 100;   // base (within 7 km of the shop); exact charge is by distance at checkout
     foot.innerHTML =
       '<div class="ak-row"><span>Subtotal (' + cartCount() + ' items)</span><span>' + money(sub) + '</span></div>' +
-      '<div class="ak-row"><span>Estimated Delivery</span><span>' + deliveryHtml + '</span></div>' +
+      '<div class="ak-row"><span>Delivery (from ₹100)</span><span>' + money(delivery) + '</span></div>' +
       '<div class="ak-row total"><span>Grand Total</span><span>' + money(sub + delivery) + '</span></div>' +
       '<button class="ak-checkout" id="ak-checkout">Proceed to Checkout →</button>';
 
@@ -1246,8 +1245,10 @@
     return '<div class="pay-panel"><div class="pay-cod">💵 <b>Cash on Delivery</b><br>Pay ₹' + amount + ' in cash when your fresh flowers arrive. Please keep exact change ready. 🌸</div>' +
       '<div class="pay-secure">Your order will be marked <b>Pending COD</b> until delivery.</div></div>';
   }
-  /* ---- Distance-based delivery: Sikar ₹100 · outside ₹100 + ₹20/km ---- */
-  var SIKAR = { lat: 27.6094, lng: 75.1398 };
+  /* ---- Distance-based delivery from the shop (Ghantaghar, Sikar):
+         within 7 km = flat ₹100; beyond 7 km = ₹100 + ₹20 for every km past 7 km. ---- */
+  var SIKAR = { lat: 27.6094, lng: 75.1398 };   // shop: Ghantaghar, Sikar
+  var FREE_KM = 7, BASE_FEE = 100, PER_KM = 20;
   var CITY_KM = { "Jaipur": 115, "Delhi": 280, "Bikaner": 230, "Ajmer": 155, "Jodhpur": 300, "Udaipur": 340, "Churu": 95, "Reengus": 35 };
   var detectedKm = null;   // set after browser geolocation
   function haversine(la1, lo1, la2, lo2) {
@@ -1256,18 +1257,27 @@
     var s = Math.sin(dLa / 2) * Math.sin(dLa / 2) + Math.cos(r(la1)) * Math.cos(r(la2)) * Math.sin(dLo / 2) * Math.sin(dLo / 2);
     return 2 * R * Math.asin(Math.sqrt(s));
   }
+  // Fee for a given distance (km) from the shop.
+  function feeForKm(km) {
+    if (km <= FREE_KM) return BASE_FEE;
+    return BASE_FEE + PER_KM * (km - FREE_KM);   // ₹100 covers 7 km, then ₹20/km beyond
+  }
   function computeDelivery() {
     var loc = load("ambika_location") || {};
     var city = (loc.city || "").trim();
-    if (detectedKm != null) {
-      if (detectedKm <= 12) return { fee: 100, zone: "Sikar (Local)", detail: "Within Sikar · flat ₹100" };
-      var km = Math.max(1, Math.round(detectedKm));
-      return { fee: 100 + 20 * km, zone: "Outside Sikar", detail: "~" + km + " km · ₹100 + ₹20/km", km: km };
+    // pick the best distance estimate: exact GPS if detected, else a known-city distance.
+    var rawKm = null, viaCity = false;
+    if (detectedKm != null) rawKm = detectedKm;
+    else if (city && !/sikar/i.test(city) && CITY_KM[city]) { rawKm = CITY_KM[city]; viaCity = true; }
+    if (rawKm == null) {
+      if (!city || /sikar/i.test(city)) return { fee: BASE_FEE, zone: "Sikar (Local)", detail: "Within 7 km of Ghantaghar · flat ₹" + BASE_FEE };
+      return { fee: BASE_FEE, zone: city, detail: "Tap “Detect exact location” for the precise charge" };
     }
-    if (!city || /sikar/i.test(city)) return { fee: 100, zone: "Sikar (Local)", detail: "Within Sikar · flat ₹100" };
-    var ck = CITY_KM[city];
-    if (ck) return { fee: 100 + 20 * ck, zone: "Outside Sikar", detail: "~" + ck + " km to " + city + " · ₹100 + ₹20/km", km: ck };
-    return { fee: 100, zone: city, detail: "Tap “Detect exact location” for the precise charge" };
+    var km = Math.max(1, Math.round(rawKm));
+    if (km <= FREE_KM) return { fee: BASE_FEE, zone: "Sikar (Local)", detail: "Within 7 km · flat ₹" + BASE_FEE, km: km };
+    var fee = feeForKm(km);
+    var detail = "~" + km + " km" + (viaCity ? " to " + city : " from shop") + " · ₹" + BASE_FEE + " + ₹" + PER_KM + "/km beyond 7 km";
+    return { fee: fee, zone: (viaCity ? city : "Beyond 7 km"), detail: detail, km: km };
   }
   function detectDeliveryLocation(rerender) {
     if (!navigator.geolocation) { toast("Location not supported — using saved area"); return; }
@@ -1275,7 +1285,8 @@
     navigator.geolocation.getCurrentPosition(function (pos) {
       detectedKm = haversine(SIKAR.lat, SIKAR.lng, pos.coords.latitude, pos.coords.longitude);
       if (rerender) renderPay();
-      toast(detectedKm <= 12 ? "📍 You’re in Sikar — ₹100 delivery 🌸" : "📍 ~" + Math.round(detectedKm) + " km from Sikar");
+      var dkm = Math.max(1, Math.round(detectedKm));
+      toast(dkm <= FREE_KM ? "📍 Within 7 km — ₹" + BASE_FEE + " delivery 🌸" : "📍 ~" + dkm + " km · ₹" + feeForKm(dkm) + " delivery");
     }, function () {
       if (el("pay-detect")) { el("pay-detect").textContent = "🎯 Detect my exact location"; el("pay-detect").classList.remove("loading"); }
       toast("Location access denied — using your saved area");
