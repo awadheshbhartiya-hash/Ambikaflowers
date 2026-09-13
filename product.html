@@ -204,7 +204,7 @@ body { font-family:"Segoe UI",Arial,sans-serif; color:#333; background:#f8f9fb; 
   // Respect the global "Coming Soon" toggle; otherwise show the live price from the database
   Promise.all([
     fetch("/api/settings").then(function(r){return r.ok?r.json():{};}).catch(function(){return {};}),
-    fetch("/api/products").then(function(r){return r.ok?r.json():[];}).catch(function(){return [];})
+    fetch("/api/products",{cache:"no-store"}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];})
   ]).then(function(res){
     var settings = res[0]||{}, list = res[1]||[];
     if(settings.comingSoon){ showPd("Coming Soon"); return; }

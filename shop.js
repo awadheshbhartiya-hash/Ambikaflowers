@@ -276,7 +276,7 @@
      Matches by product name (cart ids are name-slugs, not the DB's PRD id). */
   function refreshCartPrices(cb) {
     if (!cart.length) { if (cb) cb(); return; }
-    fetch(API_BASE + "/api/products")
+    fetch(API_BASE + "/api/products", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (list) {
         if (Array.isArray(list)) {
@@ -1680,7 +1680,7 @@
   function syncStorefrontPrices() {
     var pSettings = fetch(API_BASE + "/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; });
     // null (not []) signals the backend was unreachable → keep the static cards.
-    var pProducts = fetch(API_BASE + "/api/products").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    var pProducts = fetch(API_BASE + "/api/products", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
     Promise.all([pSettings, pProducts]).then(function (res) {
       var settings = res[0] || {}, list = res[1];
       // Share the fetched catalogue so page-level sliders (bestsellers, all-products)

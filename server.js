@@ -340,7 +340,7 @@ app.post("/api/admin/login", (req, res) => {
 });
 
 // PRODUCTS — stored in Supabase so admin edits (price/name/add/delete) are permanent
-app.get("/api/products", (req, res) => res.json(store.products));
+app.get("/api/products", (req, res) => { res.set("Cache-Control", "no-store"); res.json(store.products); });
 app.put("/api/products", requireAdmin, async (req, res) => {          // admin bulk save (full list)
   if (!Array.isArray(req.body)) return res.status(400).json({ error: "expected array" });
   // Write to Supabase FIRST — only commit to memory + report success once the

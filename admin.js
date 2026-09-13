@@ -461,6 +461,7 @@
     return fallback || "";
   }
   var orderFilter = "All";
+  var productCatFilter = "All";
   pages.orders = function () {
     var live = freshOrders();
     var counts = { All: live.length };
@@ -500,13 +501,31 @@
         metric("amber", "⚠️", "Low Stock", products.filter(function (p) { return p.stock > 0 && p.stock <= 10; }).length, "down", "reorder soon") +
         metric("red", "⛔", "Out of Stock", products.filter(function (p) { return p.stock === 0; }).length, "down", "restock") +
       '</div>' +
-      '<div class="card"><h3>Inventory Matrix</h3><div class="sub">All catalogue items</div><div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Discount</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="prodBody">' +
+      productCatTabs() +
+      '<div class="card"><h3>Inventory Matrix</h3><div class="sub" id="prodMatrixSub">' + (productCatFilter === "All" ? "All catalogue items" : esc(productCatFilter) + " products") + '</div><div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Discount</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="prodBody">' +
         productRows() +
       '</tbody></table></div></div>';
   };
 
+  // Category filter tabs above the Inventory Matrix (All + each category that has products).
+  function productCatTabs() {
+    var counts = {};
+    products.forEach(function (p) { var c = String(p.category || "Other"); counts[c] = (counts[c] || 0) + 1; });
+    var order = ["Bouquet", "Vermala", "Hamper", "Flower Jewelry", "Gajara", "Balloon", "Car Decor", "Event Decor"];
+    var cats = order.filter(function (c) { return counts[c]; });
+    Object.keys(counts).forEach(function (c) { if (cats.indexOf(c) < 0) cats.push(c); });
+    var list = ["All"].concat(cats);
+    var tabs = list.map(function (c) {
+      var n = c === "All" ? products.length : (counts[c] || 0);
+      return '<button class="tab ' + (productCatFilter === c ? "active" : "") + '" onclick="ADMIN.productFilter(\'' + String(c).replace(/'/g, "\\'") + '\')">' + esc(c) + '<span class="cnt">' + n + '</span></button>';
+    }).join("");
+    return '<div class="tabs" style="margin-bottom:16px;">' + tabs + '</div>';
+  }
+
   function productRows() {
-    return products.map(function (p) {
+    var list = products.filter(function (p) { return productCatFilter === "All" || String(p.category || "") === productCatFilter; });
+    if (!list.length) return '<tr><td colspan="7" style="text-align:center;color:var(--ink2);padding:28px;">No products in this category yet.</td></tr>';
+    return list.map(function (p) {
       var ss = stockStatus(p.stock);
       var thumb = p.image ? '<img src="' + esc(p.image) + '" alt="" onerror="this.style.display=\'none\'" style="width:38px;height:38px;border-radius:8px;object-fit:cover;margin-right:9px;vertical-align:middle;">' : '<span style="display:inline-block;width:38px;height:38px;border-radius:8px;background:rgba(120,140,170,.15);margin-right:9px;vertical-align:middle;text-align:center;line-height:38px;">🌸</span>';
       return '<tr><td>' + thumb + '<b>' + esc(p.title) + '</b>' + (p.custom ? ' <span class="pill pink" style="font-size:9px;">NEW</span>' : '') + '<br><small style="color:var(--ink2);">' + p.id + ' · ' + esc(p.tags) + '</small></td>' +
@@ -786,6 +805,7 @@
         });
     },
     orderFilter: function (s) { orderFilter = s; go("orders"); },
+    productFilter: function (c) { productCatFilter = c; go("products"); },
     setStatus: function (id, s) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) { x.status = s; x.statusIdx = (s === "Cancelled") ? "Cancelled" : FLORAL.indexOf(s); } }); lsSave("ambika_orders", o); notify("Order " + id + " → " + s + " (synced to live tracker)"); },
     setTrack: function (id, t) { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) x.track = t; }); lsSave("ambika_orders", o); notify("Tracking saved for " + id); },
     deleteOrder: function (id) {
