@@ -1240,60 +1240,69 @@
   function activeAddons() {
     return (payState.addons && payState.addons.length) ? payState.addons : DEFAULT_ADDONS;
   }
+  // Selection is stored per group as { opt:"optId", qty:n }.
+  function selOptId(gid) { var s = (payState.addonSel || {})[gid]; return (s && s.opt) || ""; }
+  function selQty(gid) { var s = (payState.addonSel || {})[gid]; return Math.max(1, (s && s.qty) || 1); }
   // Read the customer's current picks → line items + their combined price.
   function computeAddonSelection() {
-    var sel = payState.addonSel || {}, lines = [], total = 0;
+    var lines = [], total = 0;
     activeAddons().forEach(function (g) {
-      var oid = sel[g.id]; if (!oid) return;
+      var oid = selOptId(g.id); if (!oid) return;
       var opt = null; (g.options || []).forEach(function (o) { if (o.id === oid) opt = o; });
       if (!opt) return;
-      var price = Number(opt.price) || 0; total += price;
-      lines.push({ group: g.name, label: opt.label, price: price, image: opt.image || "", emoji: g.emoji || "🎁" });
+      var unit = Number(opt.price) || 0, qty = selQty(g.id), lineTotal = unit * qty;
+      total += lineTotal;
+      lines.push({ group: g.name, label: opt.label, price: unit, qty: qty, lineTotal: lineTotal, image: opt.image || "", emoji: g.emoji || "🎁" });
     });
     return { lines: lines, total: total };
   }
   // The order summary block (items + chosen add-ons + delivery + grand total).
   function summaryInner(p, ad, zone, fee, total) {
     return p.items.map(function (it) { return '<div class="pl"><span>' + esc(it.name) + ' × ' + it.qty + '</span><span>₹' + (it.price * it.qty).toLocaleString("en-IN") + '</span></div>'; }).join("") +
-      ad.lines.map(function (l) { return '<div class="pl"><span>' + esc(l.emoji) + ' ' + esc(l.group) + ' · ' + esc(l.label) + '</span><span>₹' + l.price.toLocaleString("en-IN") + '</span></div>'; }).join("") +
+      ad.lines.map(function (l) { return '<div class="pl"><span>' + esc(l.emoji) + ' ' + esc(l.group) + ' · ' + esc(l.label) + (l.qty > 1 ? ' × ' + l.qty : '') + '</span><span>₹' + l.lineTotal.toLocaleString("en-IN") + '</span></div>'; }).join("") +
       '<div class="pl"><span>Delivery <small style="color:#a1758a;">(' + esc(zone) + ')</small></span><span>₹' + (fee || 0).toLocaleString("en-IN") + '</span></div>' +
       '<div class="pl tot"><span>Total Payable</span><span>₹' + total.toLocaleString("en-IN") + '</span></div>';
   }
   // The "Add a little extra" dropdowns (one per add-on group), with a live thumbnail.
+  function addonThumbHtml(g, selOpt) {
+    var img = (selOpt && selOpt.image) || g.image || "";
+    return img
+      ? '<img class="addon-thumb" src="' + esc(img) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="addon-emoji" style="display:none">' + esc(g.emoji || "🎁") + '</span>'
+      : '<span class="addon-emoji">' + esc(g.emoji || "🎁") + '</span>';
+  }
   function addonsSectionHtml() {
     var groups = activeAddons();
     if (!groups.length) return "";
     var rows = groups.map(function (g) {
-      var sel = (payState.addonSel && payState.addonSel[g.id]) || "";
-      var selOpt = null; (g.options || []).forEach(function (o) { if (o.id === sel) selOpt = o; });
+      var selId = selOptId(g.id);
+      var selOpt = null; (g.options || []).forEach(function (o) { if (o.id === selId) selOpt = o; });
       var opts = '<option value="">— None —</option>' + (g.options || []).map(function (o) {
-        return '<option value="' + esc(o.id) + '"' + (sel === o.id ? ' selected' : '') + '>' + esc(o.label) + ' — ₹' + (Number(o.price) || 0) + '</option>';
+        return '<option value="' + esc(o.id) + '"' + (selId === o.id ? ' selected' : '') + '>' + esc(o.label) + ' — ₹' + (Number(o.price) || 0) + '</option>';
       }).join("");
-      var img = (selOpt && selOpt.image) || g.image || "";
-      var thumb = img
-        ? '<img class="addon-thumb" src="' + esc(img) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="addon-emoji" style="display:none">' + esc(g.emoji || "🎁") + '</span>'
-        : '<span class="addon-emoji">' + esc(g.emoji || "🎁") + '</span>';
-      return '<div class="addon-row' + (sel ? ' picked' : '') + '" data-row="' + esc(g.id) + '">' +
-        '<div class="addon-thumb-wrap" data-thumb="' + esc(g.id) + '">' + thumb + '</div>' +
+      var stepper = '<div class="addon-qty" data-qty="' + esc(g.id) + '" style="display:' + (selId ? 'inline-flex' : 'none') + ';">' +
+        '<button type="button" class="aq-btn" data-addon="' + esc(g.id) + '" data-act="dec" aria-label="Kam karo">−</button>' +
+        '<span class="aq-n" data-n="' + esc(g.id) + '">' + selQty(g.id) + '</span>' +
+        '<button type="button" class="aq-btn" data-addon="' + esc(g.id) + '" data-act="inc" aria-label="Zyada karo">+</button>' +
+        '</div>';
+      return '<div class="addon-row' + (selId ? ' picked' : '') + '" data-row="' + esc(g.id) + '">' +
+        '<div class="addon-thumb-wrap" data-thumb="' + esc(g.id) + '">' + addonThumbHtml(g, selOpt) + '</div>' +
         '<div class="addon-meta"><div class="addon-name">' + esc(g.name) + '</div>' +
-        '<select class="addon-sel" data-addon="' + esc(g.id) + '">' + opts + '</select></div></div>';
+        '<div class="addon-controls"><select class="addon-sel" data-addon="' + esc(g.id) + '">' + opts + '</select>' + stepper + '</div></div></div>';
     }).join("");
     return '<div class="pay-addons" id="pay-addons"><div class="pay-addons-h">🎁 Add a little extra <small>(optional)</small></div>' + rows + '</div>';
   }
-  // Refresh one group's thumbnail after its dropdown changes (show the chosen photo).
+  // Refresh one group's thumbnail / picked state / qty after a change.
   function updateAddonThumb(gid) {
     var wrap = document.querySelector('.addon-thumb-wrap[data-thumb="' + gid + '"]');
     var row = document.querySelector('.addon-row[data-row="' + gid + '"]');
-    if (!wrap) return;
     var g = null; activeAddons().forEach(function (x) { if (x.id === gid) g = x; });
     if (!g) return;
-    var sel = (payState.addonSel && payState.addonSel[gid]) || "";
-    var selOpt = null; (g.options || []).forEach(function (o) { if (o.id === sel) selOpt = o; });
-    var img = (selOpt && selOpt.image) || g.image || "";
-    wrap.innerHTML = img
-      ? '<img class="addon-thumb" src="' + esc(img) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="addon-emoji" style="display:none">' + esc(g.emoji || "🎁") + '</span>'
-      : '<span class="addon-emoji">' + esc(g.emoji || "🎁") + '</span>';
-    if (row) { row.classList.toggle("picked", !!sel); row.classList.remove("pop"); void row.offsetWidth; if (sel) row.classList.add("pop"); }
+    var selId = selOptId(gid);
+    var selOpt = null; (g.options || []).forEach(function (o) { if (o.id === selId) selOpt = o; });
+    if (wrap) wrap.innerHTML = addonThumbHtml(g, selOpt);
+    if (row) { row.classList.toggle("picked", !!selId); row.classList.remove("pop"); void row.offsetWidth; if (selId) row.classList.add("pop"); }
+    var step = document.querySelector('.addon-qty[data-qty="' + gid + '"]'); if (step) step.style.display = selId ? "inline-flex" : "none";
+    var nEl = document.querySelector('.aq-n[data-n="' + gid + '"]'); if (nEl) nEl.textContent = selQty(gid);
   }
   // Recompute the bill when an add-on changes — without wiping the fields the
   // customer already typed (date / address / gift / customization).
@@ -1340,9 +1349,16 @@
       '@keyframes aoWob{0%,100%{transform:rotate(-6deg);}50%{transform:rotate(6deg);}}' +
       '.addon-meta{flex:1;min-width:0;}' +
       '.addon-name{font-size:13.5px;font-weight:700;color:#5a2a45;margin-bottom:5px;}' +
-      '.addon-sel{width:100%;box-sizing:border-box;border:1.5px solid #ecd6e1;border-radius:9px;padding:8px 10px;font-size:13.5px;color:#3a2540;background:#fff;cursor:pointer;}' +
+      '.addon-controls{display:flex;align-items:center;gap:8px;}' +
+      '.addon-controls .addon-sel{flex:1;min-width:0;}' +
+      '.addon-sel{box-sizing:border-box;width:100%;border:1.5px solid #ecd6e1;border-radius:9px;padding:8px 10px;font-size:13.5px;color:#3a2540;background:#fff;cursor:pointer;}' +
       '.addon-sel:focus{outline:none;border-color:#e84393;box-shadow:0 0 0 3px rgba(232,67,147,.14);}' +
-      '@media (max-width:480px){.addon-thumb-wrap{width:40px;height:40px;}.addon-name{font-size:12.5px;}}';
+      '.addon-qty{align-items:center;border:1.5px solid #e84393;border-radius:9px;overflow:hidden;background:#fff;flex-shrink:0;box-shadow:0 2px 6px rgba(232,67,147,.14);}' +
+      '.aq-btn{border:none;background:#fff2f8;color:#c2185b;font-size:18px;font-weight:800;width:30px;height:34px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;}' +
+      '.aq-btn:hover{background:#e84393;color:#fff;}' +
+      '.aq-btn:active{transform:scale(.85);}' +
+      '.aq-n{min-width:28px;text-align:center;font-size:14px;font-weight:800;color:#5a2a45;padding:0 2px;}' +
+      '@media (max-width:480px){.addon-thumb-wrap{width:40px;height:40px;}.addon-name{font-size:12.5px;}.aq-btn{width:28px;height:32px;}}';
     document.head.appendChild(s);
   }
   function closePay() { var m = el("af-pay"); if (m) m.classList.remove("open"); var o = el("af-pay-ov"); if (o) o.classList.remove("open"); }
@@ -1430,9 +1446,6 @@
     payState.total = total;
     payState.deliveryFee = delivery;
     payState.deliveryZone = del.zone;
-    var loc = load("ambika_location");
-    var payUser = load("ambika_user") || {};
-    var prefillAddr = payUser.address || (loc && loc.label ? loc.label : "");
     // When "Coming Soon" mode is on (prices not finalised), allow only Cash on Delivery
     var cs = !!payState.comingSoon;
     var methodsHtml;
@@ -1460,9 +1473,7 @@
       '<div class="pay-flds">' +
         '<div class="pay-fld"><label>Delivery Date</label><input type="date" id="pay-date"></div>' +
         '<div class="pay-fld"><label>Time Slot</label><select id="pay-slot"><option>9 AM – 12 PM</option><option>12 PM – 3 PM</option><option selected>3 PM – 6 PM</option><option>6 PM – 9 PM</option></select></div>' +
-        '<div class="pay-fld full"><label>Delivery Address</label><input id="pay-addr" placeholder="Full delivery address" value="' + esc(prefillAddr) + '"></div>' +
         '<div class="pay-fld full"><label>Gift Card Message (optional)</label><textarea id="pay-gift" rows="2" placeholder="Write a sweet note…"></textarea></div>' +
-        '<div class="pay-fld full"><label>Customization / Special Request (optional)</label><textarea id="pay-custom" rows="2" placeholder="Need any customization? Colour, flower type, packing, or a special message — write it here…"></textarea></div>' +
       '</div>' +
       addonsSectionHtml() +
       methodsHtml +
@@ -1478,8 +1489,23 @@
         s.addEventListener("change", function () {
           payState.addonSel = payState.addonSel || {};
           var gid = s.getAttribute("data-addon");
-          if (s.value) payState.addonSel[gid] = s.value; else delete payState.addonSel[gid];
+          if (s.value) {
+            var prev = payState.addonSel[gid];
+            payState.addonSel[gid] = { opt: s.value, qty: (prev && prev.qty) || 1 };
+          } else { delete payState.addonSel[gid]; }
           updateAddonThumb(gid);
+          recomputeTotals();
+        });
+      });
+      addWrap.querySelectorAll(".aq-btn").forEach(function (b) {
+        b.addEventListener("click", function () {
+          payState.addonSel = payState.addonSel || {};
+          var gid = b.getAttribute("data-addon");
+          var cur = payState.addonSel[gid]; if (!cur || !cur.opt) return;
+          var q = Math.max(1, cur.qty || 1) + (b.getAttribute("data-act") === "inc" ? 1 : -1);
+          cur.qty = Math.max(1, Math.min(50, q));
+          var nEl = document.querySelector('.aq-n[data-n="' + gid + '"]'); if (nEl) nEl.textContent = cur.qty;
+          var row = document.querySelector('.addon-row[data-row="' + gid + '"]'); if (row) { row.classList.remove("pop"); void row.offsetWidth; row.classList.add("pop"); }
           recomputeTotals();
         });
       });
@@ -1515,13 +1541,6 @@
     document.head.appendChild(s);
   }
   function confirmPay() {
-    // Delivery address is compulsory
-    var addrEl = el("pay-addr");
-    if (!addrEl || !addrEl.value.trim()) {
-      toast("Please enter a delivery address 🌸");
-      if (addrEl) { addrEl.focus(); addrEl.style.borderColor = "#e84393"; addrEl.scrollIntoView({ behavior: "smooth", block: "center" }); }
-      return;
-    }
     if (payState.method === "cod") { finalizeOrder("COD", "Pending COD", ""); return; }
     startRazorpay();
   }

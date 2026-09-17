@@ -1052,7 +1052,7 @@
           kv("Placed On", placed) + kv("Tracking #", o.track || "—") +
         '</div>' +
         (o.address ? '<div class="section-title">📍 Delivery Address</div><div class="addr-box">' + esc(o.address) + '</div>' : '') +
-        ((o.addons && o.addons.length) ? '<div class="section-title">🎁 Add-ons / Extras</div><div class="addr-box" style="border-left:4px solid #e84393;background:#fff0f6;color:#7a1f4e;font-weight:600;">' + o.addons.map(function (a) { return esc((a.emoji || "🎁") + " " + a.group + " · " + a.label) + " — " + inr(a.price); }).join("<br>") + '</div>' : '') +
+        ((o.addons && o.addons.length) ? '<div class="section-title">🎁 Add-ons / Extras</div><div class="addr-box" style="border-left:4px solid #e84393;background:#fff0f6;color:#7a1f4e;font-weight:600;">' + o.addons.map(function (a) { var q = a.qty || 1; return esc((a.emoji || "🎁") + " " + a.group + " · " + a.label + (q > 1 ? " × " + q : "")) + " — " + inr(a.lineTotal != null ? a.lineTotal : (a.price || 0) * q); }).join("<br>") + '</div>' : '') +
         (o.customization ? '<div class="section-title">✏️ Customization / Special Request</div><div class="addr-box" style="border-left:4px solid #e84393;background:#fff0f6;color:#7a1f4e;font-weight:600;">' + esc(o.customization) + '</div>' : '') +
         (o.gift ? '<div class="section-title">🎁 Gift Card Message</div><div class="addr-box">' + esc(o.gift) + '</div>' : '') +
         '<div class="grid g-2" style="gap:10px;">' + kv("Delivery Date", o.deliveryDate || "—") + kv("Preferred Slot", o.slot || "—") + '</div>');
