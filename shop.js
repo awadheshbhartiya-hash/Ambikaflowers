@@ -1204,8 +1204,111 @@
      CHECKOUT / PAYMENT
      ========================================================================== */
   var payState = { method: "upi", payload: null, onComplete: null };
+
+  /* ---------- ADD-ONS / EXTRAS (teddy, chocolates…) ----------
+     Each group shows as ONE dropdown at checkout. The customer picks one option
+     per group (or none); every chosen option's price is added to the bill total.
+     These defaults show out of the box, but the shopkeeper can add/edit/remove
+     groups, options, prices and photos from the Admin panel → they are saved in
+     settings.addons on the server and override these defaults everywhere. */
+  var DEFAULT_ADDONS = [
+    { id: "teddy", name: "Teddy Bear", emoji: "🧸", options: [
+      { id: "t-s", label: "Small", price: 200, image: "" },
+      { id: "t-m", label: "Medium", price: 300, image: "" },
+      { id: "t-l", label: "Large", price: 500, image: "" }
+    ] },
+    { id: "crispello", name: "Crispello Chocolate", emoji: "🍫", options: [
+      { id: "cr-1", label: "Crispello", price: 10, image: "" },
+      { id: "cr-2", label: "Crispello (Big)", price: 30, image: "" }
+    ] },
+    { id: "dairymilk", name: "Dairy Milk", emoji: "🍫", options: [
+      { id: "dm-1", label: "Dairy Milk", price: 10, image: "" },
+      { id: "dm-2", label: "Dairy Milk", price: 40, image: "" },
+      { id: "dm-3", label: "Dairy Milk", price: 60, image: "" }
+    ] },
+    { id: "fivestar", name: "5 Star", emoji: "⭐", options: [
+      { id: "fs-1", label: "5 Star", price: 10, image: "" },
+      { id: "fs-2", label: "5 Star", price: 20, image: "" }
+    ] },
+    { id: "kitkat", name: "KitKat", emoji: "🍫", options: [
+      { id: "kk-1", label: "KitKat", price: 10, image: "" },
+      { id: "kk-2", label: "KitKat", price: 20, image: "" },
+      { id: "kk-3", label: "KitKat", price: 30, image: "" },
+      { id: "kk-4", label: "KitKat", price: 40, image: "" }
+    ] }
+  ];
+  function activeAddons() {
+    return (payState.addons && payState.addons.length) ? payState.addons : DEFAULT_ADDONS;
+  }
+  // Read the customer's current picks → line items + their combined price.
+  function computeAddonSelection() {
+    var sel = payState.addonSel || {}, lines = [], total = 0;
+    activeAddons().forEach(function (g) {
+      var oid = sel[g.id]; if (!oid) return;
+      var opt = null; (g.options || []).forEach(function (o) { if (o.id === oid) opt = o; });
+      if (!opt) return;
+      var price = Number(opt.price) || 0; total += price;
+      lines.push({ group: g.name, label: opt.label, price: price, image: opt.image || "", emoji: g.emoji || "🎁" });
+    });
+    return { lines: lines, total: total };
+  }
+  // The order summary block (items + chosen add-ons + delivery + grand total).
+  function summaryInner(p, ad, zone, fee, total) {
+    return p.items.map(function (it) { return '<div class="pl"><span>' + esc(it.name) + ' × ' + it.qty + '</span><span>₹' + (it.price * it.qty).toLocaleString("en-IN") + '</span></div>'; }).join("") +
+      ad.lines.map(function (l) { return '<div class="pl"><span>' + esc(l.emoji) + ' ' + esc(l.group) + ' · ' + esc(l.label) + '</span><span>₹' + l.price.toLocaleString("en-IN") + '</span></div>'; }).join("") +
+      '<div class="pl"><span>Delivery <small style="color:#a1758a;">(' + esc(zone) + ')</small></span><span>₹' + (fee || 0).toLocaleString("en-IN") + '</span></div>' +
+      '<div class="pl tot"><span>Total Payable</span><span>₹' + total.toLocaleString("en-IN") + '</span></div>';
+  }
+  // The "Add a little extra" dropdowns (one per add-on group), with a live thumbnail.
+  function addonsSectionHtml() {
+    var groups = activeAddons();
+    if (!groups.length) return "";
+    var rows = groups.map(function (g) {
+      var sel = (payState.addonSel && payState.addonSel[g.id]) || "";
+      var selOpt = null; (g.options || []).forEach(function (o) { if (o.id === sel) selOpt = o; });
+      var opts = '<option value="">— None —</option>' + (g.options || []).map(function (o) {
+        return '<option value="' + esc(o.id) + '"' + (sel === o.id ? ' selected' : '') + '>' + esc(o.label) + ' — ₹' + (Number(o.price) || 0) + '</option>';
+      }).join("");
+      var img = (selOpt && selOpt.image) || g.image || "";
+      var thumb = img
+        ? '<img class="addon-thumb" src="' + esc(img) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="addon-emoji" style="display:none">' + esc(g.emoji || "🎁") + '</span>'
+        : '<span class="addon-emoji">' + esc(g.emoji || "🎁") + '</span>';
+      return '<div class="addon-row' + (sel ? ' picked' : '') + '" data-row="' + esc(g.id) + '">' +
+        '<div class="addon-thumb-wrap" data-thumb="' + esc(g.id) + '">' + thumb + '</div>' +
+        '<div class="addon-meta"><div class="addon-name">' + esc(g.name) + '</div>' +
+        '<select class="addon-sel" data-addon="' + esc(g.id) + '">' + opts + '</select></div></div>';
+    }).join("");
+    return '<div class="pay-addons" id="pay-addons"><div class="pay-addons-h">🎁 Add a little extra <small>(optional)</small></div>' + rows + '</div>';
+  }
+  // Refresh one group's thumbnail after its dropdown changes (show the chosen photo).
+  function updateAddonThumb(gid) {
+    var wrap = document.querySelector('.addon-thumb-wrap[data-thumb="' + gid + '"]');
+    var row = document.querySelector('.addon-row[data-row="' + gid + '"]');
+    if (!wrap) return;
+    var g = null; activeAddons().forEach(function (x) { if (x.id === gid) g = x; });
+    if (!g) return;
+    var sel = (payState.addonSel && payState.addonSel[gid]) || "";
+    var selOpt = null; (g.options || []).forEach(function (o) { if (o.id === sel) selOpt = o; });
+    var img = (selOpt && selOpt.image) || g.image || "";
+    wrap.innerHTML = img
+      ? '<img class="addon-thumb" src="' + esc(img) + '" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="addon-emoji" style="display:none">' + esc(g.emoji || "🎁") + '</span>'
+      : '<span class="addon-emoji">' + esc(g.emoji || "🎁") + '</span>';
+    if (row) { row.classList.toggle("picked", !!sel); row.classList.remove("pop"); void row.offsetWidth; if (sel) row.classList.add("pop"); }
+  }
+  // Recompute the bill when an add-on changes — without wiping the fields the
+  // customer already typed (date / address / gift / customization).
+  function recomputeTotals() {
+    var p = payState.payload, ad = computeAddonSelection();
+    var total = p.subtotal + (payState.deliveryFee || 0) + ad.total;
+    payState.total = total;
+    var sumEl = el("pay-sum"); if (sumEl) sumEl.innerHTML = summaryInner(p, ad, payState.deliveryZone, payState.deliveryFee, total);
+    var cb = el("pay-confirm"); if (cb) cb.innerHTML = payState.method === "cod" ? ("Place Order · ₹" + total.toLocaleString("en-IN")) : ("Confirm &amp; Pay ₹" + total.toLocaleString("en-IN"));
+    var panel = el("pay-panel"); if (panel) { panel.innerHTML = methodPanel(payState.method, total); wirePanel(); }
+  }
+
   function injectPay() {
     if (el("af-pay")) return;
+    injectAddonCss();
     var w = document.createElement("div");
     w.innerHTML =
       '<div class="af-ov" id="af-pay-ov"></div>' +
@@ -1216,6 +1319,31 @@
     document.body.appendChild(w);
     el("af-pay-x").addEventListener("click", closePay);
     el("af-pay-ov").addEventListener("click", closePay);
+  }
+  function injectAddonCss() {
+    if (el("af-addon-css")) return;
+    var s = document.createElement("style"); s.id = "af-addon-css";
+    s.textContent =
+      '.pay-addons{margin:6px 0 10px;border:1.5px dashed #f3c6dd;background:linear-gradient(180deg,#fff6fb,#fff);border-radius:16px;padding:12px 12px 6px;animation:aoIn .45s cubic-bezier(.2,.9,.3,1.3);}' +
+      '@keyframes aoIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}' +
+      '.pay-addons-h{font-size:14px;font-weight:800;color:#a23b7a;margin:0 2px 10px;}' +
+      '.pay-addons-h small{font-weight:600;color:#c98db3;}' +
+      '.addon-row{display:flex;align-items:center;gap:11px;padding:8px;border-radius:13px;margin-bottom:8px;background:#fff;border:1.5px solid #f2dbe8;transition:border-color .2s,box-shadow .2s,transform .15s;}' +
+      '.addon-row:hover{border-color:#f0a8cc;box-shadow:0 4px 14px rgba(232,67,147,.12);}' +
+      '.addon-row.picked{border-color:#e84393;background:#fff2f8;box-shadow:0 3px 12px rgba(232,67,147,.16);}' +
+      '.addon-row.pop{animation:aoPop .4s cubic-bezier(.2,.9,.3,1.5);}' +
+      '@keyframes aoPop{0%{transform:scale(1);}40%{transform:scale(1.02);}100%{transform:scale(1);}}' +
+      '.addon-thumb-wrap{width:46px;height:46px;flex-shrink:0;border-radius:11px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fdeef5;border:1px solid #f6d6e6;}' +
+      '.addon-thumb{width:100%;height:100%;object-fit:cover;transition:transform .3s;}' +
+      '.addon-row:hover .addon-thumb{transform:scale(1.08);}' +
+      '.addon-emoji{font-size:24px;line-height:1;animation:aoWob 2.4s ease-in-out infinite;}' +
+      '@keyframes aoWob{0%,100%{transform:rotate(-6deg);}50%{transform:rotate(6deg);}}' +
+      '.addon-meta{flex:1;min-width:0;}' +
+      '.addon-name{font-size:13.5px;font-weight:700;color:#5a2a45;margin-bottom:5px;}' +
+      '.addon-sel{width:100%;box-sizing:border-box;border:1.5px solid #ecd6e1;border-radius:9px;padding:8px 10px;font-size:13.5px;color:#3a2540;background:#fff;cursor:pointer;}' +
+      '.addon-sel:focus{outline:none;border-color:#e84393;box-shadow:0 0 0 3px rgba(232,67,147,.14);}' +
+      '@media (max-width:480px){.addon-thumb-wrap{width:40px;height:40px;}.addon-name{font-size:12.5px;}}';
+    document.head.appendChild(s);
   }
   function closePay() { var m = el("af-pay"); if (m) m.classList.remove("open"); var o = el("af-pay-ov"); if (o) o.classList.remove("open"); }
 
@@ -1297,7 +1425,8 @@
     var p = payState.payload;
     var del = computeDelivery();
     var delivery = del.fee;
-    var total = p.subtotal + delivery;
+    var ad = computeAddonSelection();
+    var total = p.subtotal + delivery + ad.total;
     payState.total = total;
     payState.deliveryFee = delivery;
     payState.deliveryZone = del.zone;
@@ -1323,10 +1452,8 @@
     }
     var confirmLabel = payState.method === "cod" ? ("Place Order · ₹" + total.toLocaleString("en-IN")) : ("Confirm &amp; Pay ₹" + total.toLocaleString("en-IN"));
     var body =
-      '<div class="pay-sum">' +
-        p.items.map(function (it) { return '<div class="pl"><span>' + esc(it.name) + ' × ' + it.qty + '</span><span>₹' + (it.price * it.qty).toLocaleString("en-IN") + '</span></div>'; }).join("") +
-        '<div class="pl"><span>Delivery <small style="color:#a1758a;">(' + esc(del.zone) + ')</small></span><span>₹' + delivery.toLocaleString("en-IN") + '</span></div>' +
-        '<div class="pl tot"><span>Total Payable</span><span>₹' + total.toLocaleString("en-IN") + '</span></div>' +
+      '<div class="pay-sum" id="pay-sum">' +
+        summaryInner(p, ad, del.zone, delivery, total) +
       '</div>' +
       '<div class="pay-deliv"><div class="pay-deliv-txt">🚚 ' + esc(del.detail) + '</div>' +
         '<button type="button" class="pay-detect" id="pay-detect">🎯 Detect my exact location</button></div>' +
@@ -1337,6 +1464,7 @@
         '<div class="pay-fld full"><label>Gift Card Message (optional)</label><textarea id="pay-gift" rows="2" placeholder="Write a sweet note…"></textarea></div>' +
         '<div class="pay-fld full"><label>Customization / Special Request (optional)</label><textarea id="pay-custom" rows="2" placeholder="Need any customization? Colour, flower type, packing, or a special message — write it here…"></textarea></div>' +
       '</div>' +
+      addonsSectionHtml() +
       methodsHtml +
       '<div id="pay-panel">' + methodPanel(payState.method, total) + '</div>' +
       '<button class="pay-confirm" id="pay-confirm">' + confirmLabel + '</button>' +
@@ -1344,6 +1472,18 @@
     el("af-pay-body").innerHTML = body;
 
     el("pay-detect").addEventListener("click", function () { detectDeliveryLocation(true); });
+    var addWrap = el("pay-addons");
+    if (addWrap) {
+      addWrap.querySelectorAll(".addon-sel").forEach(function (s) {
+        s.addEventListener("change", function () {
+          payState.addonSel = payState.addonSel || {};
+          var gid = s.getAttribute("data-addon");
+          if (s.value) payState.addonSel[gid] = s.value; else delete payState.addonSel[gid];
+          updateAddonThumb(gid);
+          recomputeTotals();
+        });
+      });
+    }
     el("pay-methods").querySelectorAll(".pay-m").forEach(function (m) {
       m.addEventListener("click", function () {
         el("pay-methods").querySelectorAll(".pay-m").forEach(function (x) { x.classList.remove("sel"); });
@@ -1431,6 +1571,7 @@
       deliveryDate: (el("pay-date") && el("pay-date").value) || "", slot: (el("pay-slot") && el("pay-slot").value) || "",
       address: (el("pay-addr") && el("pay-addr").value.trim()) || "", gift: (el("pay-gift") && el("pay-gift").value.trim()) || "",
       customization: (el("pay-custom") && el("pay-custom").value.trim()) || "",
+      addons: computeAddonSelection().lines,
       deliveryFee: payState.deliveryFee || 0, deliveryZone: payState.deliveryZone || "",
       placedTs: now, date: new Date(now).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }), track: ""
     };
@@ -1481,14 +1622,17 @@
   window.AmbikaPay = {
     openCheckout: function (payload, onComplete) {
       injectPay();
-      payState = { method: "upi", payload: payload, onComplete: onComplete, total: 0, comingSoon: false };
+      payState = { method: "upi", payload: payload, onComplete: onComplete, total: 0, comingSoon: false, addons: DEFAULT_ADDONS, addonSel: {} };
       renderPay();
       el("af-pay").classList.add("open"); el("af-pay-ov").classList.add("open");
       // Auto-detect the customer's home location first, then refine the delivery charge
       if (detectedKm == null) setTimeout(function () { detectDeliveryLocation(true); }, 400);
-      // If "Coming Soon" mode is on, restrict checkout to Cash on Delivery only
+      // Load shopkeeper settings: "Coming Soon" price mode + any custom add-ons/extras
       fetch(API_BASE + "/api/settings").then(function (r) { return r.ok ? r.json() : {}; }).then(function (s) {
-        if (s && s.comingSoon) { payState.comingSoon = true; payState.method = "cod"; renderPay(); }
+        var changed = false;
+        if (s && Array.isArray(s.addons) && s.addons.length) { payState.addons = s.addons; changed = true; }
+        if (s && s.comingSoon) { payState.comingSoon = true; payState.method = "cod"; changed = true; }
+        if (changed) renderPay();
       }).catch(function () {});
     }
   };

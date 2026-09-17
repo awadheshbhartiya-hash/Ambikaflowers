@@ -171,7 +171,17 @@
       if ((initial || grew) && /dashboard|orders|analytics|payments|customers/.test(current)) go(current);
     }).catch(function () {});
     apiGet("/api/customers").then(function (d) { if (Array.isArray(d)) { customers = customersFromServer(d); if (current === "customers") go("customers"); } }).catch(function () {});
-    apiGet("/api/settings").then(function (d) { if (d && typeof d === "object") { var was = siteSettings.comingSoon; siteSettings = d; if (current === "dashboard" && was !== !!d.comingSoon) go("dashboard"); } }).catch(function () {});
+    apiGet("/api/settings").then(function (d) {
+      if (d && typeof d === "object") {
+        var was = siteSettings.comingSoon;
+        var wasAddons = JSON.stringify(siteSettings.addons || null);
+        siteSettings = d;
+        if (current === "dashboard" && was !== !!d.comingSoon) go("dashboard");
+        // Refresh the Add-ons editor from the server only when the owner has no
+        // unsaved edits and the server copy actually changed (e.g. another device).
+        if (current === "addons" && !addonDirty && JSON.stringify(d.addons || null) !== wasAddons) { addonDraft = null; go("addons"); }
+      }
+    }).catch(function () {});
   }
   // PUT straight to Railway backend so a big catalogue (base64 photos) never hits Vercel's proxy body limit.
   var RAILWAY = "https://ambikaflowers-production-a69a.up.railway.app";
@@ -507,6 +517,110 @@
       '</tbody></table></div></div>';
   };
 
+  /* ---------- ADD-ONS / EXTRAS (teddy, chocolates…) ----------
+     Shown as dropdowns on the checkout page. The shopkeeper edits groups /
+     options / prices / photos here; they are saved into settings.addons on the
+     server and immediately reflect on the live storefront. New groups added
+     here appear on the website automatically — future-proof. */
+  var DEFAULT_ADDONS = [
+    { id: "teddy", name: "Teddy Bear", emoji: "🧸", options: [
+      { id: "t-s", label: "Small", price: 200, image: "" },
+      { id: "t-m", label: "Medium", price: 300, image: "" },
+      { id: "t-l", label: "Large", price: 500, image: "" }
+    ] },
+    { id: "crispello", name: "Crispello Chocolate", emoji: "🍫", options: [
+      { id: "cr-1", label: "Crispello", price: 10, image: "" },
+      { id: "cr-2", label: "Crispello (Big)", price: 30, image: "" }
+    ] },
+    { id: "dairymilk", name: "Dairy Milk", emoji: "🍫", options: [
+      { id: "dm-1", label: "Dairy Milk", price: 10, image: "" },
+      { id: "dm-2", label: "Dairy Milk", price: 40, image: "" },
+      { id: "dm-3", label: "Dairy Milk", price: 60, image: "" }
+    ] },
+    { id: "fivestar", name: "5 Star", emoji: "⭐", options: [
+      { id: "fs-1", label: "5 Star", price: 10, image: "" },
+      { id: "fs-2", label: "5 Star", price: 20, image: "" }
+    ] },
+    { id: "kitkat", name: "KitKat", emoji: "🍫", options: [
+      { id: "kk-1", label: "KitKat", price: 10, image: "" },
+      { id: "kk-2", label: "KitKat", price: 20, image: "" },
+      { id: "kk-3", label: "KitKat", price: 30, image: "" },
+      { id: "kk-4", label: "KitKat", price: 40, image: "" }
+    ] }
+  ];
+  var addonDraft = null;   // working copy while editing on the Add-ons page
+  var addonDirty = false;  // true once the owner has unsaved edits (blocks live-sync overwrite)
+  function cloneAddons(a) { try { return JSON.parse(JSON.stringify(a)); } catch (e) { return []; } }
+  function ensureAddonDraft() {
+    if (addonDraft) return;
+    var src = (siteSettings && Array.isArray(siteSettings.addons) && siteSettings.addons.length) ? siteSettings.addons : DEFAULT_ADDONS;
+    addonDraft = cloneAddons(src);
+  }
+  function aoUid(pfx) { return (pfx || "ao") + Date.now().toString(36) + rand(100, 999); }
+
+  pages.addons = function () {
+    ensureAddonDraft();
+    return '' +
+      '<div class="page-head"><div><h1>Add-ons / Extras 🎁</h1><p>Teddy, chocolates &amp; more — shown as dropdowns on checkout. Prices add to the customer\'s bill automatically.</p></div>' +
+      '<button class="btn btn-primary" onclick="ADMIN.addonSave()">💾 Save &amp; Publish</button></div>' +
+      '<div class="card" style="margin-bottom:16px;border-left:5px solid #e84393;">' +
+        '<div style="font-weight:700;color:var(--ink);">How this works</div>' +
+        '<div class="sub" style="margin-top:5px;line-height:1.6;">Har <b>group</b> (jaise Teddy, KitKat) checkout par ek dropdown banta hai. Uske <b>options</b> (Small/Medium… ya alag daam) customer choose karta hai — jo choose kare uska price bill me jud jata hai. Photo optional hai (na ho to emoji dikhega). Save dabao to website par turant live. Aage aur bhi add kar sakte ho.</div>' +
+      '</div>' +
+      '<div id="aoWrap">' + addonGroupsHtml() + '</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;">' +
+        '<button class="btn btn-ghost" onclick="ADMIN.addonAddGroup()">＋ Add New Group</button>' +
+        '<button class="btn btn-primary" onclick="ADMIN.addonSave()">💾 Save &amp; Publish</button>' +
+        '<button class="btn btn-ghost" style="color:#d33;" onclick="ADMIN.addonResetDefaults()">↺ Reset to defaults</button>' +
+      '</div>';
+  };
+  function addonGroupsHtml() {
+    if (!addonDraft.length) return '<div class="card" style="text-align:center;color:var(--ink2);padding:30px;">No add-on groups yet. Tap “＋ Add New Group”.</div>';
+    return addonDraft.map(addonGroupCard).join("");
+  }
+  function addonGroupCard(g, i) {
+    var opts = (g.options || []).map(function (o, j) { return addonOptionRow(o, i, j); }).join("");
+    return '<div class="card" style="margin-bottom:16px;">' +
+      '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;">' +
+        '<div class="fld" style="width:70px;"><label>Icon</label><input data-g="' + i + '" data-f="emoji" value="' + esc(g.emoji || "🎁") + '" maxlength="4" style="text-align:center;font-size:18px;" oninput="ADMIN.addonTouch()"></div>' +
+        '<div class="fld" style="flex:1;min-width:160px;"><label>Group Name</label><input data-g="' + i + '" data-f="name" value="' + esc(g.name || "") + '" placeholder="e.g. Teddy Bear" oninput="ADMIN.addonTouch()"></div>' +
+        '<button class="mini-btn" style="color:#d33;" onclick="ADMIN.addonDelGroup(' + i + ')">🗑 Delete group</button>' +
+      '</div>' +
+      '<div class="tbl-wrap"><table><thead><tr><th style="width:64px;">Photo</th><th>Option label</th><th style="width:120px;">Price (₹)</th><th style="width:90px;"></th></tr></thead><tbody>' +
+        (opts || '<tr><td colspan="4" style="text-align:center;color:var(--ink2);padding:16px;">No options yet.</td></tr>') +
+      '</tbody></table></div>' +
+      '<button class="mini-btn" style="margin-top:10px;" onclick="ADMIN.addonAddOption(' + i + ')">＋ Add option</button>' +
+      '</div>';
+  }
+  function addonOptionRow(o, i, j) {
+    var img = o.image || "";
+    var thumb = img
+      ? '<img id="aoThumb-' + i + '-' + j + '" src="' + esc(img) + '" alt="" style="width:44px;height:44px;border-radius:9px;object-fit:cover;">'
+      : '<span id="aoThumb-' + i + '-' + j + '" style="display:inline-flex;width:44px;height:44px;border-radius:9px;background:rgba(232,67,147,.1);align-items:center;justify-content:center;font-size:20px;">🖼️</span>';
+    return '<tr>' +
+      '<td><label style="cursor:pointer;display:inline-block;">' + thumb +
+        '<input type="file" accept="image/*" data-g="' + i + '" data-o="' + j + '" data-f="file" style="display:none;" onchange="ADMIN.addonPhoto(' + i + ',' + j + ',this)">' +
+        '<input type="hidden" data-g="' + i + '" data-o="' + j + '" data-f="image" value="' + esc(img) + '"></label></td>' +
+      '<td><input data-g="' + i + '" data-o="' + j + '" data-f="label" value="' + esc(o.label || "") + '" placeholder="e.g. Small" oninput="ADMIN.addonTouch()"></td>' +
+      '<td><input data-g="' + i + '" data-o="' + j + '" data-f="price" type="text" inputmode="numeric" value="' + esc(String(o.price != null ? o.price : "")) + '" oninput="ADMIN.addonTouch()"></td>' +
+      '<td><button class="mini-btn" style="color:#d33;" onclick="ADMIN.addonDelOption(' + i + ',' + j + ')">🗑</button></td>' +
+    '</tr>';
+  }
+  // Pull every input on the page back into addonDraft before any structural change.
+  function syncAddonInputs() {
+    if (!addonDraft) return;
+    addonDraft.forEach(function (g, i) {
+      var gn = document.querySelector('[data-g="' + i + '"][data-f="name"]'); if (gn) g.name = gn.value;
+      var ge = document.querySelector('[data-g="' + i + '"][data-f="emoji"]'); if (ge) g.emoji = ge.value;
+      (g.options || []).forEach(function (o, j) {
+        var l = document.querySelector('[data-g="' + i + '"][data-o="' + j + '"][data-f="label"]'); if (l) o.label = l.value;
+        var pr = document.querySelector('[data-g="' + i + '"][data-o="' + j + '"][data-f="price"]'); if (pr) o.price = parseInt(String(pr.value).replace(/[^0-9]/g, ""), 10) || 0;
+        var im = document.querySelector('[data-g="' + i + '"][data-o="' + j + '"][data-f="image"]'); if (im) o.image = im.value;
+      });
+    });
+  }
+  function renderAddonWrap() { var w = document.getElementById("aoWrap"); if (w) w.innerHTML = addonGroupsHtml(); }
+
   // Category filter tabs above the Inventory Matrix (All + each category that has products).
   function productCatTabs() {
     var counts = {};
@@ -806,6 +920,71 @@
     },
     orderFilter: function (s) { orderFilter = s; go("orders"); },
     productFilter: function (c) { productCatFilter = c; go("products"); },
+    /* ---- Add-ons / Extras editor ---- */
+    addonTouch: function () { addonDirty = true; },
+    addonAddGroup: function () {
+      ensureAddonDraft(); syncAddonInputs(); addonDirty = true;
+      addonDraft.push({ id: aoUid("g-"), name: "", emoji: "🎁", options: [{ id: aoUid("o-"), label: "", price: 0, image: "" }] });
+      renderAddonWrap();
+    },
+    addonDelGroup: function (i) {
+      ensureAddonDraft(); syncAddonInputs();
+      if (addonDraft[i] && !confirm('Delete the "' + (addonDraft[i].name || "this") + '" group?')) return;
+      addonDirty = true; addonDraft.splice(i, 1); renderAddonWrap();
+    },
+    addonAddOption: function (i) {
+      ensureAddonDraft(); syncAddonInputs(); addonDirty = true;
+      if (!addonDraft[i]) return;
+      addonDraft[i].options = addonDraft[i].options || [];
+      addonDraft[i].options.push({ id: aoUid("o-"), label: "", price: 0, image: "" });
+      renderAddonWrap();
+    },
+    addonDelOption: function (i, j) {
+      ensureAddonDraft(); syncAddonInputs(); addonDirty = true;
+      if (addonDraft[i] && addonDraft[i].options) addonDraft[i].options.splice(j, 1);
+      renderAddonWrap();
+    },
+    addonPhoto: function (i, j, input) {
+      if (!input || !input.files || !input.files[0]) return;
+      var file = input.files[0];
+      if (!/^image\//.test(file.type)) { notify("Please choose an image file"); return; }
+      if (file.size > 12 * 1024 * 1024) { notify("Image too large (max 12 MB)"); return; }
+      var fr = new FileReader();
+      fr.onload = function () {
+        compressImage(fr.result, function (src) {
+          ensureAddonDraft();
+          if (addonDraft[i] && addonDraft[i].options && addonDraft[i].options[j]) addonDraft[i].options[j].image = src;
+          addonDirty = true;
+          var hid = document.querySelector('[data-g="' + i + '"][data-o="' + j + '"][data-f="image"]'); if (hid) hid.value = src;
+          var th = document.getElementById("aoThumb-" + i + "-" + j);
+          if (th) {
+            if (th.tagName === "IMG") { th.src = src; }
+            else { var im = document.createElement("img"); im.id = th.id; im.src = src; im.alt = ""; im.style.cssText = "width:44px;height:44px;border-radius:9px;object-fit:cover;"; th.parentNode.replaceChild(im, th); }
+          }
+          notify("Photo added ✓ (Save to publish)");
+        });
+      };
+      fr.readAsDataURL(file);
+    },
+    addonResetDefaults: function () {
+      if (!confirm("Reset all add-ons back to the built-in defaults? Your custom changes will be lost after you Save.")) return;
+      addonDraft = cloneAddons(DEFAULT_ADDONS); addonDirty = true; if (current === "addons") go("addons");
+    },
+    addonSave: function () {
+      ensureAddonDraft(); syncAddonInputs();
+      // Clean up: drop blank groups/options, guarantee ids, coerce prices.
+      var clean = [];
+      addonDraft.forEach(function (g) {
+        var opts = (g.options || []).filter(function (o) { return (o.label || "").trim() || Number(o.price) > 0 || o.image; })
+          .map(function (o) { return { id: o.id || aoUid("o-"), label: (o.label || "").trim(), price: parseInt(String(o.price).replace(/[^0-9]/g, ""), 10) || 0, image: o.image || "" }; });
+        if ((g.name || "").trim() && opts.length) clean.push({ id: g.id || aoUid("g-"), name: g.name.trim(), emoji: (g.emoji || "🎁").trim() || "🎁", options: opts });
+      });
+      addonDraft = clean;
+      notify("Saving add-ons… ⏳");
+      apiSend("PUT", "/api/settings", { addons: clean })
+        .then(function (d) { if (d && typeof d === "object") siteSettings = d; addonDirty = false; notify("✅ Add-ons saved — live on the website 🎁"); if (current === "addons") go("addons"); })
+        .catch(function () { if (typeof toast === "function") toast("⚠️ Save failed — please try again"); });
+    },
     setStatus: function (id, s) {
       function apply() { var o = freshOrders(); o.forEach(function (x) { if (x.id === id) { x.status = s; x.statusIdx = (s === "Cancelled") ? "Cancelled" : FLORAL.indexOf(s); } }); lsSave("ambika_orders", o); }
       apply();
@@ -873,6 +1052,7 @@
           kv("Placed On", placed) + kv("Tracking #", o.track || "—") +
         '</div>' +
         (o.address ? '<div class="section-title">📍 Delivery Address</div><div class="addr-box">' + esc(o.address) + '</div>' : '') +
+        ((o.addons && o.addons.length) ? '<div class="section-title">🎁 Add-ons / Extras</div><div class="addr-box" style="border-left:4px solid #e84393;background:#fff0f6;color:#7a1f4e;font-weight:600;">' + o.addons.map(function (a) { return esc((a.emoji || "🎁") + " " + a.group + " · " + a.label) + " — " + inr(a.price); }).join("<br>") + '</div>' : '') +
         (o.customization ? '<div class="section-title">✏️ Customization / Special Request</div><div class="addr-box" style="border-left:4px solid #e84393;background:#fff0f6;color:#7a1f4e;font-weight:600;">' + esc(o.customization) + '</div>' : '') +
         (o.gift ? '<div class="section-title">🎁 Gift Card Message</div><div class="addr-box">' + esc(o.gift) + '</div>' : '') +
         '<div class="grid g-2" style="gap:10px;">' + kv("Delivery Date", o.deliveryDate || "—") + kv("Preferred Slot", o.slot || "—") + '</div>');
